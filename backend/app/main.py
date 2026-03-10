@@ -15,7 +15,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://YOUR_VERCEL_DOMAIN.vercel.app",
+        "https://habitflow-eosin.vercel.app/",
     ],
     allow_credentials=True,
     allow_methods=["*"],
