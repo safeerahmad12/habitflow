@@ -12,8 +12,10 @@ from app.auth import get_db, hash_password, verify_password, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+
 def normalize_email(email: str) -> str:
     return email.strip().lower()
+
 
 def send_otp_email(recipient_email: str, otp_code: str):
     gmail_user = os.getenv("GMAIL_USER")
@@ -51,7 +53,6 @@ def send_otp_email(recipient_email: str, otp_code: str):
 
 @router.post("/send-otp", response_model=schemas.MessageResponse)
 def send_otp(request: schemas.SendOTPRequest, db: Session = Depends(get_db)):
-
     email = normalize_email(request.email)
     existing_user = db.query(models.User).filter(models.User.email == email).first()
     if existing_user:
@@ -81,10 +82,10 @@ def send_otp(request: schemas.SendOTPRequest, db: Session = Depends(get_db)):
 
     return {"message": "OTP sent to your email inbox."}
 
+
 # ---------------- VERIFY OTP + REGISTER ----------------
 
 @router.post("/verify-otp", response_model=schemas.AuthResponse)
-
 def verify_otp(data: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
     email = normalize_email(data.email)
 
@@ -126,7 +127,6 @@ def verify_otp(data: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
     )
 
     db.add(new_user)
-
     otp_record.is_used = True
 
     db.commit()
@@ -169,7 +169,6 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     }
 
 
-
 # ---------------- FORGOT PASSWORD: SEND RESET OTP ----------------
 
 @router.post("/forgot-password", response_model=schemas.MessageResponse)
@@ -201,6 +200,7 @@ def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depend
 
     return {"message": "Password reset OTP sent to your email."}
 
+
 # ------------- GUEST LOGIN ---------
 
 @router.post("/guest-login", response_model=schemas.AuthResponse)
@@ -231,6 +231,7 @@ def guest_login(db: Session = Depends(get_db)):
         "user_email": guest_user.email,
     }
 
+
 # ---------------- RESET PASSWORD USING OTP ----------------
 
 @router.post("/reset-password", response_model=schemas.MessageResponse)
@@ -260,15 +261,14 @@ def reset_password(data: schemas.ResetPasswordRequest, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="User not found")
 
     user.password_hash = hash_password(data.new_password)
-
     otp_record.is_used = True
 
     db.commit()
 
     return {"message": "Password successfully reset"}
 
-# ---------------- GOOGLE LOGIN ----------------
 
+# ---------------- GOOGLE LOGIN ----------------
 
 @router.post("/google-login", response_model=schemas.AuthResponse)
 def google_login(data: schemas.GoogleTokenLoginRequest, db: Session = Depends(get_db)):
