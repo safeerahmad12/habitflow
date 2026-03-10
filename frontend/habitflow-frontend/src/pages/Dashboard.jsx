@@ -1403,7 +1403,7 @@ const containerStyle = {
   width: "100%",
   maxWidth: "1440px",
   margin: "0 auto",
-  padding: "12px 20px 28px",
+  padding: "0px 20px 28px",
 };
 
 const glassCardBase = {
