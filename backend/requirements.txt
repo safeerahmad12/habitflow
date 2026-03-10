@@ -4,7 +4,9 @@ anyio==4.12.1
 bcrypt==5.0.0
 click==8.3.1
 ecdsa==0.19.1
+email-validator
 fastapi==0.135.1
+google-auth
 h11==0.16.0
 idna==3.11
 passlib==1.7.4
@@ -12,8 +14,10 @@ psycopg2-binary==2.9.11
 pyasn1==0.6.2
 pydantic==2.12.5
 pydantic_core==2.41.5
+python-dotenv
 python-jose==3.5.0
 python-multipart==0.0.22
+requests
 rsa==4.9.1
 six==1.17.0
 SQLAlchemy==2.0.48
@@ -21,5 +25,3 @@ starlette==0.52.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn==0.41.0
-google-auth
-python-dotenv
