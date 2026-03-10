@@ -660,12 +660,6 @@ function Dashboard() {
                 Build better routines with streak tracking, smart insights, secure
                 authentication, and a clean personal dashboard designed for daily use.
               </p>
-
-              <div style={heroFeatureListStyle}>
-                <div style={heroFeatureItemStyle}>✅ Secure email + Google sign in</div>
-                <div style={heroFeatureItemStyle}>🔥 Streaks, charts, and heatmap tracking</div>
-                <div style={heroFeatureItemStyle}>🧠 AI-style insights for consistency</div>
-              </div>
             </div>
 
             <div style={authCardStyle}>
@@ -856,15 +850,13 @@ function Dashboard() {
                   >
                     {authLoading ? "Entering..." : "Continue as Guest"}
                   </button>
-
-
-
-                  <p style={{ color: "#cbd5e1", fontSize: "12px", marginTop: "6px" }}>
-                    Use Forgot Password to get a reset OTP by email.
-                  </p>
                 </>
               )}
             </div>
+          </div>
+
+          <div style={footerStyle}>
+            HabitFlow © {new Date().getFullYear()} — Built by Safeer Ahmad
           </div>
         </div>
       </div>
@@ -1417,11 +1409,11 @@ const glassCardBase = {
 
 const heroCardStyle = {
   display: "grid",
-  gridTemplateColumns: "1.35fr 380px",
-  gap: "24px",
+  gridTemplateColumns: "minmax(0, 1fr) 420px",
+  gap: "28px",
   alignItems: "center",
-  minHeight: "210px",
-  padding: "24px 28px",
+  minHeight: "0",
+  padding: "28px 30px",
   borderRadius: "24px",
   background:
     "linear-gradient(135deg, rgba(8,15,35,0.96), rgba(6,13,30,0.92))",
@@ -1441,7 +1433,7 @@ const eyebrowStyle = {
 
 const heroTitleStyle = {
   margin: "0 0 10px 0",
-  fontSize: "46px",
+  fontSize: "54px",
   lineHeight: 1.02,
   fontWeight: 800,
   color: "#f8fafc",
@@ -1450,15 +1442,15 @@ const heroTitleStyle = {
 
 const heroTextStyle = {
   margin: 0,
-  maxWidth: "720px",
-  fontSize: "16px",
-  lineHeight: 1.65,
+  maxWidth: "760px",
+  fontSize: "18px",
+  lineHeight: 1.75,
   color: "#cbd5e1",
 };
 
 const authCardStyle = {
   width: "100%",
-  maxWidth: "380px",
+  maxWidth: "420px",
   justifySelf: "end",
   padding: "18px",
   borderRadius: "20px",
@@ -1466,6 +1458,8 @@ const authCardStyle = {
   border: "1px solid rgba(255,255,255,0.08)",
   boxShadow: "0 16px 40px rgba(0,0,0,0.2)",
   backdropFilter: "blur(12px)",
+  overflow: "hidden",
+  boxSizing: "border-box",
 };
 
 const authSwitchStyle = {
@@ -1649,10 +1643,12 @@ const panelTitleStyle = {
 const formColumnStyle = {
   display: "grid",
   gap: "14px",
+  width: "100%",
 };
 
 const inputStyle = {
   width: "100%",
+  maxWidth: "100%",
   padding: "15px 16px",
   borderRadius: "14px",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -1660,6 +1656,7 @@ const inputStyle = {
   color: "#f8fafc",
   fontSize: "15px",
   outline: "none",
+  boxSizing: "border-box",
 };
 
 const filterGridStyle = {
@@ -1789,6 +1786,7 @@ const buttonRowStyle = {
 
 const primaryButtonStyle = {
   width: "100%",
+  maxWidth: "100%",
   border: "none",
   borderRadius: "14px",
   padding: "15px 18px",
@@ -1798,10 +1796,12 @@ const primaryButtonStyle = {
   background: "linear-gradient(135deg, #f472b6, #fb7185)",
   cursor: "pointer",
   boxShadow: "0 14px 28px rgba(244,114,182,0.22)",
+  boxSizing: "border-box",
 };
 
 const secondaryButtonStyle = {
   width: "100%",
+  maxWidth: "100%",
   border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: "14px",
   padding: "14px 18px",
@@ -1810,6 +1810,7 @@ const secondaryButtonStyle = {
   color: "#e2e8f0",
   background: "rgba(255,255,255,0.05)",
   cursor: "pointer",
+  boxSizing: "border-box",
 };
 
 const templateButtonStyle = {
@@ -1888,22 +1889,6 @@ const pendingBadgeStyle = {
   border: "1px solid rgba(249,115,22,0.25)",
 };
 
-const heroFeatureListStyle = {
-  display: "grid",
-  gap: "10px",
-  marginTop: "20px",
-  maxWidth: "520px",
-};
-
-const heroFeatureItemStyle = {
-  color: "#e2e8f0",
-  fontSize: "14px",
-  lineHeight: 1.5,
-  padding: "10px 12px",
-  borderRadius: "12px",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.06)",
-};
 
 const accountHeaderStyle = {
   display: "flex",
