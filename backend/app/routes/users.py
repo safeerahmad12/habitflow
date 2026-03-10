@@ -173,7 +173,7 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 # ---------------- FORGOT PASSWORD: SEND RESET OTP ----------------
 
 @router.post("/forgot-password", response_model=schemas.MessageResponse)
-def forgot_password(request: schemas.SendOTPRequest, db: Session = Depends(get_db)):
+def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
     email = normalize_email(request.email)
 
     user = db.query(models.User).filter(models.User.email == email).first()
@@ -234,7 +234,7 @@ def guest_login(db: Session = Depends(get_db)):
 # ---------------- RESET PASSWORD USING OTP ----------------
 
 @router.post("/reset-password", response_model=schemas.MessageResponse)
-def reset_password(data: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
+def reset_password(data: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
     email = normalize_email(data.email)
     otp_record = (
         db.query(models.EmailOTP)
@@ -252,22 +252,20 @@ def reset_password(data: schemas.VerifyOTPRequest, db: Session = Depends(get_db)
     if otp_record.expires_at < datetime.utcnow():
         raise HTTPException(status_code=400, detail="OTP expired")
 
-    if otp_record.otp_code != data.otp_code:
+    if otp_record.otp_code != data.reset_token:
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.password_hash = hash_password(data.password)
+    user.password_hash = hash_password(data.new_password)
 
     otp_record.is_used = True
 
     db.commit()
 
     return {"message": "Password successfully reset"}
-
-# ---------------- GOOGLE LOGIN ----------------
 
 # ---------------- GOOGLE LOGIN ----------------
 
@@ -317,6 +315,8 @@ def google_login(data: schemas.GoogleTokenLoginRequest, db: Session = Depends(ge
             user.google_id = google_sub
         if not user.email_verified:
             user.email_verified = True
+        if not user.auth_provider:
+            user.auth_provider = "google"
         db.commit()
         db.refresh(user)
 
