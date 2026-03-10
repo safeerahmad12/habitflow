@@ -1384,13 +1384,17 @@ function Dashboard() {
 /* ---------- styles ---------- */
 
 const shellStyle = {
-  minHeight: "100vh",
-  width: "100%",
+  position: "fixed",
+  inset: 0,
+  width: "100vw",
+  minHeight: "100dvh",
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "center",
   padding: "0",
   margin: "0",
+  overflowY: "auto",
+  overflowX: "hidden",
   background:
     "radial-gradient(circle at top left, rgba(139,92,246,0.22), transparent 24%), radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 22%), linear-gradient(135deg, #151937 0%, #091224 58%, #030712 100%)",
 };
@@ -1399,7 +1403,7 @@ const containerStyle = {
   width: "100%",
   maxWidth: "1440px",
   margin: "0 auto",
-  padding: "16px 20px 28px",
+  padding: "12px 20px 28px",
 };
 
 const glassCardBase = {
