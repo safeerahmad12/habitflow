@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import random
@@ -8,9 +9,18 @@ from email.message import EmailMessage
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from app import models, schemas
-from app.auth import get_db, hash_password, verify_password, create_access_token
+from app.auth import get_db, get_current_user_required, hash_password, verify_password, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+class UpdateNameRequest(BaseModel):
+    name: str
+
+
+class UpdateNameResponse(BaseModel):
+    message: str
+    name: str
 
 
 def normalize_email(email: str) -> str:
@@ -52,7 +62,11 @@ def send_otp_email(recipient_email: str, otp_code: str):
 # ---------------- SEND OTP ----------------
 
 @router.post("/send-otp", response_model=schemas.MessageResponse)
-def send_otp(request: schemas.SendOTPRequest, db: Session = Depends(get_db)):
+def send_otp(
+    request: schemas.SendOTPRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     email = normalize_email(request.email)
     existing_user = db.query(models.User).filter(models.User.email == email).first()
     if existing_user:
@@ -69,7 +83,7 @@ def send_otp(request: schemas.SendOTPRequest, db: Session = Depends(get_db)):
         models.EmailOTP.is_used == False,
     ).update({"is_used": True})
 
-    send_otp_email(email, otp_code)
+    background_tasks.add_task(send_otp_email, email, otp_code)
 
     otp_entry = models.EmailOTP(
         email=email,
@@ -172,7 +186,11 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 # ---------------- FORGOT PASSWORD: SEND RESET OTP ----------------
 
 @router.post("/forgot-password", response_model=schemas.MessageResponse)
-def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(
+    request: schemas.ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     email = normalize_email(request.email)
 
     user = db.query(models.User).filter(models.User.email == email).first()
@@ -187,7 +205,7 @@ def forgot_password(request: schemas.ForgotPasswordRequest, db: Session = Depend
         models.EmailOTP.is_used == False,
     ).update({"is_used": True})
 
-    send_otp_email(email, otp_code)
+    background_tasks.add_task(send_otp_email, email, otp_code)
 
     otp_entry = models.EmailOTP(
         email=email,
@@ -328,3 +346,24 @@ def google_login(data: schemas.GoogleTokenLoginRequest, db: Session = Depends(ge
         "user_name": user.name,
         "user_email": user.email,
     }
+
+
+# ---------------- UPDATE PROFILE NAME ----------------
+
+@router.put("/profile/name", response_model=UpdateNameResponse)
+def update_profile_name(
+    payload: UpdateNameRequest,
+    current_user: models.User = Depends(get_current_user_required),
+    db: Session = Depends(get_db),
+):
+    next_name = payload.name.strip()
+
+    if len(next_name) < 2:
+        raise HTTPException(status_code=400, detail="Name must be at least 2 characters long.")
+
+    current_user.name = next_name
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+
+    return {"message": "Display name updated successfully.", "name": current_user.name}

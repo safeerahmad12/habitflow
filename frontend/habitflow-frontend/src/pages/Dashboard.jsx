@@ -174,27 +174,33 @@ function Dashboard() {
   const loadHabits = async () => {
     try {
       setDashboardLoading(true);
-      const [habitsRes, weeklyRes, heatmapRes] = await Promise.all([
-        API.get("/habits/"),
+
+      const habitsRes = await API.get("/habits/");
+      setHabits(Array.isArray(habitsRes.data) ? habitsRes.data : []);
+      setDashboardLoading(false);
+
+      Promise.all([
         API.get("/habits/analytics/weekly"),
         API.get("/habits/analytics/heatmap"),
-      ]);
-
-      setHabits(Array.isArray(habitsRes.data) ? habitsRes.data : []);
-      setWeeklyChart(Array.isArray(weeklyRes.data) ? weeklyRes.data : []);
-      setHeatmapData(Array.isArray(heatmapRes.data) ? heatmapRes.data : []);
+      ])
+        .then(([weeklyRes, heatmapRes]) => {
+          setWeeklyChart(Array.isArray(weeklyRes.data) ? weeklyRes.data : []);
+          setHeatmapData(Array.isArray(heatmapRes.data) ? heatmapRes.data : []);
+        })
+        .catch((error) => {
+          console.error("Error loading analytics:", error);
+        });
     } catch (error) {
       console.error("Error loading habits:", error);
       setMessage(error?.response?.data?.detail || "Failed to load habits.");
-    } finally {
       setDashboardLoading(false);
     }
   };
 
   useEffect(() => {
-    if (token) {
-      loadHabits();
-    }
+    if (!token) return;
+
+    loadHabits();
   }, [token]);
 
   useEffect(() => {
@@ -455,7 +461,7 @@ function Dashboard() {
     }
   };
 
-  const handleChangeUsername = () => {
+  const handleChangeUsername = async () => {
     const nextName = window.prompt("Enter your new display name", userName || "");
 
     if (!nextName) return;
@@ -463,9 +469,19 @@ function Dashboard() {
     const trimmedName = nextName.trim();
     if (!trimmedName) return;
 
-    localStorage.setItem("habitflow_user_name", trimmedName);
-    setUserName(trimmedName);
-    showSuccessToast("Display name updated.");
+    try {
+      const res = await API.put("/auth/profile/name", {
+        name: trimmedName,
+      });
+
+      const updatedName = res?.data?.name || trimmedName;
+      localStorage.setItem("habitflow_user_name", updatedName);
+      setUserName(updatedName);
+      showSuccessToast(res?.data?.message || "Display name updated.");
+    } catch (error) {
+      console.error("Change username error:", error);
+      setMessage(error?.response?.data?.detail || "Failed to update display name.");
+    }
   };
 
   const handleLogout = () => {
@@ -828,7 +844,7 @@ function Dashboard() {
                     onClick={handleForgotPassword}
                     disabled={authLoading}
                   >
-                    {authLoading ? "Sending..." : "Forgot Password"}
+                    Forgot Password
                   </button>
                 )}
 
@@ -891,7 +907,7 @@ function Dashboard() {
                     onClick={handleGuestLogin}
                     disabled={authLoading}
                   >
-                    {authLoading ? "Entering..." : "Continue as Guest"}
+                    Continue as Guest
                   </button>
                 </>
               )}
@@ -946,13 +962,6 @@ function Dashboard() {
 
         {message && <div style={messageBoxStyle}>{message}</div>}
         {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
-        {dashboardLoading ? (
-          <div style={loadingCardStyle}>
-            <div style={loadingPulseStyle} />
-            <p style={loadingTextStyle}>Loading your dashboard...</p>
-          </div>
-        ) : (
-          <>
 
         <div style={statsGridStyle(isMobile, isTablet)}>
           <div
@@ -1446,8 +1455,7 @@ function Dashboard() {
           </div>
         </div>
 
-          </>
-        )}
+        
 
         <div style={footerStyle}>
           HabitFlow © {new Date().getFullYear()} — Built by Safeer Ahmad
@@ -2059,31 +2067,6 @@ const toastStyle = {
   backdropFilter: "blur(10px)",
 };
 
-const loadingCardStyle = {
-  ...glassCardBase,
-  borderRadius: "18px",
-  padding: "36px 20px",
-  marginBottom: "18px",
-  display: "grid",
-  justifyItems: "center",
-  gap: "14px",
-};
-
-const loadingPulseStyle = {
-  width: "58px",
-  height: "58px",
-  borderRadius: "999px",
-  background: "linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))",
-  boxShadow: "0 14px 28px rgba(236,72,153,0.2)",
-  opacity: 0.9,
-};
-
-const loadingTextStyle = {
-  margin: 0,
-  color: "#e2e8f0",
-  fontSize: "16px",
-  fontWeight: 600,
-};
 
 const emptyStateStyle = {
   display: "grid",
