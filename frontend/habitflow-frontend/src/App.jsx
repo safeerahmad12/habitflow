@@ -10,67 +10,135 @@ function App() {
 
   return (
     <div style={pageStyle}>
-      <div style={heroWrapperStyle}>
-        <div style={heroContentStyle}>
-          <p style={eyebrowStyle}>FULL-STACK PRODUCTIVITY PLATFORM</p>
-          <h1 style={titleStyle}>Build better habits with HabitFlow.</h1>
-          <p style={subtitleStyle}>
-            Track routines, build streaks, visualize consistency with charts and
-            heatmaps, and stay accountable through a modern productivity dashboard.
-          </p>
+      <div style={shellStyle}>
+        <nav style={navStyle}>
+          <div style={brandStyle}>HabitFlow</div>
 
-          <div style={buttonRowStyle}>
-            <button style={primaryButtonStyle} onClick={() => setEnteredApp(true)}>
-              Launch App
-            </button>
-
+          <div style={navLinksStyle}>
+            <a href="#features" style={navLinkStyle}>Features</a>
+            <a href="#preview" style={navLinkStyle}>Preview</a>
             <a
               href="https://github.com/safeerahmad12/habitflow"
               target="_blank"
               rel="noreferrer"
-              style={secondaryLinkStyle}
+              style={navLinkStyle}
             >
-              View GitHub
+              GitHub
             </a>
           </div>
 
-          <div style={statsRowStyle}>
-            <div style={statCardStyle}>
-              <strong style={statValueStyle}>JWT + OAuth</strong>
-              <span style={statLabelStyle}>Secure Authentication</span>
+          <button type="button" style={navButtonStyle} onClick={() => setEnteredApp(true)}>
+            Launch App
+          </button>
+        </nav>
+
+        <section style={heroStyle}>
+          <div style={heroContentStyle}>
+            <p style={eyebrowStyle}>FULL-STACK PRODUCTIVITY PLATFORM</p>
+            <h1 style={titleStyle}>Build better habits with HabitFlow.</h1>
+            <p style={subtitleStyle}>
+              Track routines, build streaks, visualize consistency with charts and
+              heatmaps, and stay accountable through a modern productivity dashboard.
+            </p>
+
+            <div style={buttonRowStyle}>
+              <button type="button" style={primaryButtonStyle} onClick={() => setEnteredApp(true)}>
+                Launch App
+              </button>
+
+              <a
+                href="https://github.com/safeerahmad12/habitflow"
+                target="_blank"
+                rel="noreferrer"
+                style={secondaryLinkStyle}
+              >
+                View GitHub
+              </a>
             </div>
 
-            <div style={statCardStyle}>
-              <strong style={statValueStyle}>Charts + Heatmap</strong>
-              <span style={statLabelStyle}>Visual Analytics</span>
-            </div>
+            <div style={statsRowStyle}>
+              <div style={statCardStyle}>
+                <strong style={statValueStyle}>JWT + OAuth</strong>
+                <span style={statLabelStyle}>Secure Authentication</span>
+              </div>
 
-            <div style={statCardStyle}>
-              <strong style={statValueStyle}>FastAPI + React</strong>
-              <span style={statLabelStyle}>Full-Stack Architecture</span>
+              <div style={statCardStyle}>
+                <strong style={statValueStyle}>Charts + Heatmap</strong>
+                <span style={statLabelStyle}>Visual Analytics</span>
+              </div>
+
+              <div style={statCardStyle}>
+                <strong style={statValueStyle}>FastAPI + React</strong>
+                <span style={statLabelStyle}>Full-Stack Architecture</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div style={previewCardStyle}>
-          <div style={previewHeaderStyle}>
-            <span style={previewDotPink} />
-            <span style={previewDotYellow} />
-            <span style={previewDotGreen} />
-          </div>
+          <div id="preview" style={previewCardStyle}>
+            <div style={previewHeaderStyle}>
+              <span style={previewDotPink} />
+              <span style={previewDotYellow} />
+              <span style={previewDotGreen} />
+            </div>
 
-          <div style={previewBodyStyle}>
-            <p style={previewLabelStyle}>What HabitFlow offers</p>
+            <div style={previewBodyStyle}>
+              <p style={previewLabelStyle}>What HabitFlow offers</p>
 
-            <div style={featureListStyle}>
-              <div style={featureItemStyle}>🔥 Habit streak tracking</div>
-              <div style={featureItemStyle}>📊 Weekly analytics dashboard</div>
-              <div style={featureItemStyle}>🗓️ Activity heatmap</div>
-              <div style={featureItemStyle}>🔐 Email, Google, and guest login</div>
-              <div style={featureItemStyle}>🧠 AI-style insights</div>
+              <div style={featureListStyle}>
+                <div style={featureItemStyle}>🔥 Habit streak tracking</div>
+                <div style={featureItemStyle}>📊 Weekly analytics dashboard</div>
+                <div style={featureItemStyle}>🗓️ Activity heatmap</div>
+                <div style={featureItemStyle}>🔐 Email, Google, and guest login</div>
+                <div style={featureItemStyle}>🧠 AI-style insights</div>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
+
+        <section id="features" style={featuresSectionStyle}>
+          <div style={featuresHeaderStyle}>
+            <p style={featuresEyebrowStyle}>WHY HABITFLOW</p>
+            <h2 style={featuresTitleStyle}>Everything you need to stay consistent.</h2>
+            <p style={featuresTextStyle}>
+              HabitFlow combines secure authentication, productivity tracking, and
+              visual analytics into one focused full-stack application.
+            </p>
+          </div>
+
+          <div style={featuresGridStyle}>
+            <div style={featureCardStyle}>
+              <div style={featureIconStyle}>🔐</div>
+              <h3 style={featureCardTitleStyle}>Secure access</h3>
+              <p style={featureCardTextStyle}>
+                Login with email, Google OAuth, or continue as a guest for a fast demo experience.
+              </p>
+            </div>
+
+            <div style={featureCardStyle}>
+              <div style={featureIconStyle}>🔥</div>
+              <h3 style={featureCardTitleStyle}>Streak tracking</h3>
+              <p style={featureCardTextStyle}>
+                Build momentum with daily completions, streak counters, and habit consistency feedback.
+              </p>
+            </div>
+
+            <div style={featureCardStyle}>
+              <div style={featureIconStyle}>📈</div>
+              <h3 style={featureCardTitleStyle}>Analytics dashboard</h3>
+              <p style={featureCardTextStyle}>
+                Understand your performance through weekly progress charts, summaries, and activity insights.
+              </p>
+            </div>
+
+            <div style={featureCardStyle}>
+              <div style={featureIconStyle}>🗓️</div>
+              <h3 style={featureCardTitleStyle}>Heatmap history</h3>
+              <p style={featureCardTextStyle}>
+                Visualize long-term consistency with a GitHub-style activity heatmap for habits.
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -82,25 +150,76 @@ const pageStyle = {
   width: "100vw",
   minHeight: "100dvh",
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "center",
-  padding: "0",
-  margin: "0",
+  padding: 0,
+  margin: 0,
   overflowY: "auto",
   overflowX: "hidden",
   background:
     "radial-gradient(circle at top left, rgba(139,92,246,0.22), transparent 24%), radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 22%), linear-gradient(135deg, #151937 0%, #091224 58%, #030712 100%)",
 };
 
-const heroWrapperStyle = {
+const shellStyle = {
   width: "100%",
   maxWidth: "1560px",
+  padding: "24px 32px 48px",
+  margin: "0 auto",
+  display: "grid",
+  gap: "26px",
+};
+
+const navStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "20px",
+  padding: "16px 20px",
+  borderRadius: "20px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  backdropFilter: "blur(12px)",
+};
+
+const brandStyle = {
+  color: "#f8fafc",
+  fontSize: "22px",
+  fontWeight: 800,
+  letterSpacing: "-0.4px",
+};
+
+const navLinksStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "22px",
+  flexWrap: "wrap",
+};
+
+const navLinkStyle = {
+  color: "#cbd5e1",
+  textDecoration: "none",
+  fontSize: "15px",
+  fontWeight: 600,
+};
+
+const navButtonStyle = {
+  border: "none",
+  borderRadius: "12px",
+  padding: "12px 18px",
+  fontSize: "14px",
+  fontWeight: 700,
+  color: "#fff",
+  background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+  cursor: "pointer",
+  boxShadow: "0 12px 24px rgba(236,72,153,0.18)",
+};
+
+const heroStyle = {
+  width: "100%",
   display: "grid",
   gridTemplateColumns: "1.2fr 0.9fr",
   gap: "36px",
   alignItems: "center",
-  padding: "28px 32px",
-  margin: "0 auto",
 };
 
 const heroContentStyle = {
@@ -254,6 +373,76 @@ const featureItemStyle = {
   borderRadius: "14px",
   background: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const featuresSectionStyle = {
+  display: "grid",
+  gap: "24px",
+  paddingTop: "10px",
+};
+
+const featuresHeaderStyle = {
+  display: "grid",
+  gap: "10px",
+  maxWidth: "820px",
+};
+
+const featuresEyebrowStyle = {
+  margin: 0,
+  color: "#c4b5fd",
+  fontWeight: 700,
+  fontSize: "13px",
+  letterSpacing: "1.8px",
+};
+
+const featuresTitleStyle = {
+  margin: 0,
+  fontSize: "42px",
+  lineHeight: 1.08,
+  color: "#f8fafc",
+  fontWeight: 800,
+  letterSpacing: "-1px",
+};
+
+const featuresTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "18px",
+  lineHeight: 1.7,
+};
+
+const featuresGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: "16px",
+};
+
+const featureCardStyle = {
+  borderRadius: "20px",
+  padding: "22px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 16px 36px rgba(0,0,0,0.18)",
+};
+
+const featureIconStyle = {
+  fontSize: "24px",
+  marginBottom: "12px",
+};
+
+const featureCardTitleStyle = {
+  margin: "0 0 8px 0",
+  color: "#f8fafc",
+  fontSize: "20px",
+  fontWeight: 700,
+};
+
+const featureCardTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "15px",
+  lineHeight: 1.7,
 };
 
 export default App;
