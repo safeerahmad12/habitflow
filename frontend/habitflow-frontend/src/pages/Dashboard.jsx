@@ -141,7 +141,6 @@ function Dashboard() {
   const [toastMessage, setToastMessage] = useState("");
   const [weeklyChart, setWeeklyChart] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const [authMode, setAuthMode] = useState("login");
   const [authData, setAuthData] = useState(emptyAuthForm);
@@ -156,7 +155,12 @@ function Dashboard() {
   const [userEmail, setUserEmail] = useState(
     localStorage.getItem("habitflow_user_email") || ""
   );
-    const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const [profileNameInput, setProfileNameInput] = useState(
+    localStorage.getItem("habitflow_user_name") || ""
+  );
+
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -173,11 +177,8 @@ function Dashboard() {
 
   const loadHabits = async () => {
     try {
-      setDashboardLoading(true);
-
       const habitsRes = await API.get("/habits/");
       setHabits(Array.isArray(habitsRes.data) ? habitsRes.data : []);
-      setDashboardLoading(false);
 
       Promise.all([
         API.get("/habits/analytics/weekly"),
@@ -193,7 +194,6 @@ function Dashboard() {
     } catch (error) {
       console.error("Error loading habits:", error);
       setMessage(error?.response?.data?.detail || "Failed to load habits.");
-      setDashboardLoading(false);
     }
   };
 
@@ -282,6 +282,9 @@ function Dashboard() {
 
       setToken(res.data.access_token);
       setUserName(res.data.user_name);
+
+      setProfileNameInput(res.data.user_name || "");
+
       setUserEmail(res.data.user_email);
       setAuthData(emptyAuthForm);
       setOtpSent(false);
@@ -309,6 +312,7 @@ function Dashboard() {
 
       setToken(res.data.access_token);
       setUserName(res.data.user_name);
+      setProfileNameInput(res.data.user_name || "");
       setUserEmail(res.data.user_email);
       setAuthData(emptyAuthForm);
       setOtpSent(false);
@@ -335,6 +339,7 @@ function Dashboard() {
 
       setToken(res.data.access_token);
       setUserName(res.data.user_name);
+      setProfileNameInput(res.data.user_name || "");
       setUserEmail(res.data.user_email);
       setAuthData(emptyAuthForm);
       setOtpSent(false);
@@ -398,6 +403,7 @@ function Dashboard() {
 
       setToken(res.data.access_token);
       setUserName(res.data.user_name);
+      setProfileNameInput(res.data.user_name || "");
       setUserEmail(res.data.user_email);
       setAuthData(emptyAuthForm);
       setOtpSent(false);
@@ -462,12 +468,12 @@ function Dashboard() {
   };
 
   const handleChangeUsername = async () => {
-    const nextName = window.prompt("Enter your new display name", userName || "");
+    const trimmedName = profileNameInput.trim();
 
-    if (!nextName) return;
-
-    const trimmedName = nextName.trim();
-    if (!trimmedName) return;
+    if (!trimmedName) {
+      setMessage("Please enter a valid display name.");
+      return;
+    }
 
     try {
       const res = await API.put("/auth/profile/name", {
@@ -477,6 +483,9 @@ function Dashboard() {
       const updatedName = res?.data?.name || trimmedName;
       localStorage.setItem("habitflow_user_name", updatedName);
       setUserName(updatedName);
+      setProfileNameInput(updatedName);
+      setShowProfileSettings(false);
+      setMessage("");
       showSuccessToast(res?.data?.message || "Display name updated.");
     } catch (error) {
       console.error("Change username error:", error);
@@ -491,6 +500,8 @@ function Dashboard() {
 
     setToken("");
     setUserName("");
+    setProfileNameInput("");
+    setShowProfileSettings(false);
     setUserEmail("");
     setHabits([]);
     setWeeklyChart([]);
@@ -503,7 +514,7 @@ function Dashboard() {
     setForgotMode(false);
   };
 
-  
+
 
   const handleEdit = (habit) => {
     setFormData({
@@ -950,13 +961,71 @@ function Dashboard() {
             </div>
 
             <div style={accountButtonGroupStyle}>
-              <button type="button" onClick={handleChangeUsername} style={secondaryButtonStyle}>
-                Change Username
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProfileSettings((prev) => !prev);
+                  setProfileNameInput(userName || "");
+                  setMessage("");
+                }}
+                style={secondaryButtonStyle}
+              >
+                {showProfileSettings ? "Close Settings" : "Profile Settings"}
               </button>
               <button type="button" onClick={handleLogout} style={secondaryButtonStyle}>
                 Logout
               </button>
             </div>
+
+            {showProfileSettings && (
+              <div style={profilePanelStyle}>
+                <div style={profilePanelHeaderStyle}>
+                  <h3 style={profilePanelTitleStyle}>Profile Settings</h3>
+                  <p style={profilePanelTextStyle}>
+                    Update how your display name appears in HabitFlow.
+                  </p>
+                </div>
+
+                <div style={profileInfoGridStyle}>
+                  <div style={profileInfoBlockStyle}>
+                    <span style={profileInfoLabelStyle}>Email</span>
+                    <span style={profileInfoValueStyle}>{userEmail || "Not available"}</span>
+                  </div>
+
+                  <div style={profileInfoBlockStyle}>
+                    <span style={profileInfoLabelStyle}>Current Name</span>
+                    <span style={profileInfoValueStyle}>{userName || "Not set"}</span>
+                  </div>
+                </div>
+
+                <div style={formColumnStyle}>
+                  <input
+                    type="text"
+                    value={profileNameInput}
+                    onChange={(e) => setProfileNameInput(e.target.value)}
+                    placeholder="Enter new display name"
+                    style={inputStyle}
+                  />
+
+                  <div style={profileButtonRowStyle}>
+                    <button type="button" onClick={handleChangeUsername} style={primaryButtonStyle}>
+                      Save Changes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileSettings(false);
+                        setProfileNameInput(userName || "");
+                        setMessage("");
+                      }}
+                      style={secondaryButtonStyle}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1087,7 +1156,7 @@ function Dashboard() {
           </div>
 
           <div
-            style={stickyPanelStyle(isMobile)}
+            style={panelStyle(isMobile)}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-4px)";
               e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
@@ -1182,7 +1251,7 @@ function Dashboard() {
 
         <div style={mainGridStyle(isMobile, isTablet)}>
           <div
-            style={panelStyle(isMobile)}
+            style={stickyPanelStyle(isMobile)}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-4px)";
               e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
@@ -1455,7 +1524,7 @@ function Dashboard() {
           </div>
         </div>
 
-        
+
 
         <div style={footerStyle}>
           HabitFlow © {new Date().getFullYear()} — Built by Safeer Ahmad
@@ -2004,6 +2073,70 @@ const accountHeaderStyle = (isMobile) => ({
 });
 
 const accountButtonGroupStyle = {
+  display: "grid",
+  gap: "10px",
+};
+
+const profilePanelStyle = {
+  marginTop: "14px",
+  padding: "16px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  display: "grid",
+  gap: "14px",
+};
+
+const profilePanelHeaderStyle = {
+  display: "grid",
+  gap: "6px",
+};
+
+const profilePanelTitleStyle = {
+  margin: 0,
+  color: "#f8fafc",
+  fontSize: "18px",
+  fontWeight: 800,
+  letterSpacing: "-0.3px",
+};
+
+const profilePanelTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "14px",
+  lineHeight: 1.6,
+};
+
+const profileInfoGridStyle = {
+  display: "grid",
+  gap: "10px",
+};
+
+const profileInfoBlockStyle = {
+  display: "grid",
+  gap: "4px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const profileInfoLabelStyle = {
+  fontSize: "11px",
+  textTransform: "uppercase",
+  letterSpacing: "0.8px",
+  color: "#94a3b8",
+  fontWeight: 700,
+};
+
+const profileInfoValueStyle = {
+  color: "#f8fafc",
+  fontSize: "14px",
+  fontWeight: 600,
+  wordBreak: "break-word",
+};
+
+const profileButtonRowStyle = {
   display: "grid",
   gap: "10px",
 };
