@@ -1,8 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
   const [enteredApp, setEnteredApp] = useState(false);
+
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1100;
 
   if (enteredApp) {
     return <Dashboard />;
@@ -10,25 +21,25 @@ function App() {
 
   return (
     <div style={pageStyle}>
-      <div style={siteShellStyle}>
-        <nav style={navStyle}>
+      <div style={siteShellStyle(isMobile)}>
+        <nav style={navStyle(isMobile)}>
           <div style={brandStyle}>HabitFlow</div>
 
-          <div style={navLinksStyle}>
+          <div style={navLinksStyle(isMobile)}>
             <span style={navTagStyle}>Full-Stack Habit Tracker</span>
           </div>
         </nav>
 
-        <section style={heroWrapperStyle}>
+        <section style={heroWrapperStyle(isTablet, isMobile)}>
           <div style={heroContentStyle}>
             <p style={eyebrowStyle}>FULL-STACK PRODUCTIVITY PLATFORM</p>
-            <h1 style={titleStyle}>Build better habits with HabitFlow.</h1>
-            <p style={subtitleStyle}>
+            <h1 style={titleStyle(isTablet, isMobile)}>Build better habits with HabitFlow.</h1>
+            <p style={subtitleStyle(isTablet, isMobile)}>
               Track routines, build streaks, visualize consistency with charts and
               heatmaps, and stay accountable through a modern productivity dashboard.
             </p>
 
-            <div style={buttonRowStyle}>
+            <div style={buttonRowStyle(isMobile)}>
               <button style={primaryButtonStyle} onClick={() => setEnteredApp(true)}>
                 Launch App
               </button>
@@ -43,7 +54,7 @@ function App() {
               </a>
             </div>
 
-            <div style={statsRowStyle}>
+            <div style={statsRowStyle(isTablet, isMobile)}>
               <div style={statCardStyle}>
                 <strong style={statValueStyle}>JWT + OAuth</strong>
                 <span style={statLabelStyle}>Secure Authentication</span>
@@ -61,7 +72,7 @@ function App() {
             </div>
           </div>
 
-          <div style={previewCardStyle}>
+          <div style={previewCardStyle(isMobile)}>
             <div style={previewHeaderStyle}>
               <span style={previewDotPink} />
               <span style={previewDotYellow} />
@@ -85,14 +96,14 @@ function App() {
         <section style={featuresSectionStyle}>
           <div style={featureSectionHeaderStyle}>
             <p style={featureSectionEyebrowStyle}>WHY HABITFLOW</p>
-            <h2 style={featureSectionTitleStyle}>Everything you need to stay consistent.</h2>
-            <p style={featureSectionTextStyle}>
+            <h2 style={featureSectionTitleStyle(isMobile)}>Everything you need to stay consistent.</h2>
+            <p style={featureSectionTextStyle(isMobile)}>
               HabitFlow combines secure authentication, productivity tracking, and
               visual analytics into one focused full-stack application.
             </p>
           </div>
 
-          <div style={featureGridStyle}>
+          <div style={featureGridStyle(isTablet, isMobile)}>
             <div style={featureCardStyle}>
               <div style={featureIconStyle}>🔐</div>
               <h3 style={featureCardTitleStyle}>Secure access</h3>
@@ -152,26 +163,27 @@ const pageStyle = {
     "radial-gradient(circle at top left, rgba(139,92,246,0.22), transparent 24%), radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 22%), linear-gradient(135deg, #151937 0%, #091224 58%, #030712 100%)",
 };
 
-const siteShellStyle = {
+const siteShellStyle = (isMobile) => ({
   width: "100%",
   maxWidth: "1560px",
-  padding: "24px 32px 48px",
+  padding: isMobile ? "16px 14px 32px" : "24px 32px 48px",
   margin: "0 auto",
   display: "grid",
-  gap: "26px",
-};
+  gap: isMobile ? "18px" : "26px",
+});
 
-const navStyle = {
+const navStyle = (isMobile) => ({
   display: "flex",
-  alignItems: "center",
+  flexDirection: isMobile ? "column" : "row",
+  alignItems: isMobile ? "stretch" : "center",
   justifyContent: "space-between",
-  gap: "20px",
-  padding: "16px 20px",
+  gap: isMobile ? "12px" : "20px",
+  padding: isMobile ? "14px 16px" : "16px 20px",
   borderRadius: "20px",
   background: "rgba(255,255,255,0.04)",
   border: "1px solid rgba(255,255,255,0.08)",
   backdropFilter: "blur(12px)",
-};
+});
 
 const brandStyle = {
   color: "#f8fafc",
@@ -180,11 +192,13 @@ const brandStyle = {
   letterSpacing: "-0.4px",
 };
 
-const navLinksStyle = {
+const navLinksStyle = (isMobile) => ({
   display: "flex",
   alignItems: "center",
+  justifyContent: isMobile ? "center" : "flex-start",
   gap: "14px",
-};
+  flexWrap: "wrap",
+});
 
 const navTagStyle = {
   color: "#cbd5e1",
@@ -196,15 +210,15 @@ const navTagStyle = {
   border: "1px solid rgba(255,255,255,0.08)",
 };
 
-const heroWrapperStyle = {
+const heroWrapperStyle = (isTablet, isMobile) => ({
   width: "100%",
   display: "grid",
-  gridTemplateColumns: "1.2fr 0.9fr",
-  gap: "36px",
+  gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr" : "1.2fr 0.9fr",
+  gap: isMobile ? "24px" : isTablet ? "28px" : "36px",
   alignItems: "center",
   padding: "12px 0 0",
   margin: "0 auto",
-};
+});
 
 const heroContentStyle = {
   display: "grid",
@@ -231,27 +245,27 @@ const featureSectionEyebrowStyle = {
   letterSpacing: "1.8px",
 };
 
-const featureSectionTitleStyle = {
+const featureSectionTitleStyle = (isMobile) => ({
   margin: 0,
-  fontSize: "42px",
+  fontSize: isMobile ? "34px" : "42px",
   lineHeight: 1.08,
   color: "#f8fafc",
   fontWeight: 800,
   letterSpacing: "-1px",
-};
+});
 
-const featureSectionTextStyle = {
+const featureSectionTextStyle = (isMobile) => ({
   margin: 0,
   color: "#cbd5e1",
-  fontSize: "18px",
+  fontSize: isMobile ? "16px" : "18px",
   lineHeight: 1.7,
-};
+});
 
-const featureGridStyle = {
+const featureGridStyle = (isTablet, isMobile) => ({
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gridTemplateColumns: isMobile ? "1fr" : isTablet ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
   gap: "16px",
-};
+});
 
 const featureCardStyle = {
   borderRadius: "20px",
@@ -289,29 +303,30 @@ const eyebrowStyle = {
   letterSpacing: "1.8px",
 };
 
-const titleStyle = {
+const titleStyle = (isTablet, isMobile) => ({
   margin: 0,
-  fontSize: "88px",
+  fontSize: isMobile ? "48px" : isTablet ? "64px" : "88px",
   lineHeight: 1,
   color: "#f8fafc",
   fontWeight: 800,
-  letterSpacing: "-2px",
-};
+  letterSpacing: isMobile ? "-1px" : "-2px",
+});
 
-const subtitleStyle = {
+const subtitleStyle = (isTablet, isMobile) => ({
   margin: 0,
   maxWidth: "760px",
   color: "#cbd5e1",
-  fontSize: "24px",
+  fontSize: isMobile ? "18px" : isTablet ? "20px" : "24px",
   lineHeight: 1.75,
-};
+});
 
-const buttonRowStyle = {
+const buttonRowStyle = (isMobile) => ({
   display: "flex",
+  flexDirection: isMobile ? "column" : "row",
   gap: "14px",
-  alignItems: "center",
+  alignItems: isMobile ? "stretch" : "center",
   flexWrap: "wrap",
-};
+});
 
 const primaryButtonStyle = {
   border: "none",
@@ -339,12 +354,12 @@ const secondaryLinkStyle = {
   background: "rgba(255,255,255,0.05)",
 };
 
-const statsRowStyle = {
+const statsRowStyle = (isTablet, isMobile) => ({
   display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gridTemplateColumns: isMobile ? "1fr" : isTablet ? "repeat(3, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))",
   gap: "14px",
   marginTop: "10px",
-};
+});
 
 const statCardStyle = {
   borderRadius: "18px",
@@ -366,14 +381,16 @@ const statLabelStyle = {
   fontSize: "14px",
 };
 
-const previewCardStyle = {
+const previewCardStyle = (isMobile) => ({
   borderRadius: "24px",
   overflow: "hidden",
   background: "rgba(255,255,255,0.05)",
   border: "1px solid rgba(255,255,255,0.08)",
   boxShadow: "0 20px 50px rgba(0,0,0,0.22)",
   backdropFilter: "blur(12px)",
-};
+  width: "100%",
+  maxWidth: isMobile ? "100%" : "unset",
+});
 
 const previewHeaderStyle = {
   display: "flex",
