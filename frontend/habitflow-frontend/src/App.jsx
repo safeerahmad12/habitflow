@@ -10,29 +10,16 @@ function App() {
 
   return (
     <div style={pageStyle}>
-      <div style={shellStyle}>
+      <div style={siteShellStyle}>
         <nav style={navStyle}>
           <div style={brandStyle}>HabitFlow</div>
 
           <div style={navLinksStyle}>
-            <a href="#features" style={navLinkStyle}>Features</a>
-            <a href="#preview" style={navLinkStyle}>Preview</a>
-            <a
-              href="https://github.com/safeerahmad12/habitflow"
-              target="_blank"
-              rel="noreferrer"
-              style={navLinkStyle}
-            >
-              GitHub
-            </a>
+            <span style={navTagStyle}>Full-Stack Habit Tracker</span>
           </div>
-
-          <button type="button" style={navButtonStyle} onClick={() => setEnteredApp(true)}>
-            Launch App
-          </button>
         </nav>
 
-        <section style={heroStyle}>
+        <section style={heroWrapperStyle}>
           <div style={heroContentStyle}>
             <p style={eyebrowStyle}>FULL-STACK PRODUCTIVITY PLATFORM</p>
             <h1 style={titleStyle}>Build better habits with HabitFlow.</h1>
@@ -42,7 +29,7 @@ function App() {
             </p>
 
             <div style={buttonRowStyle}>
-              <button type="button" style={primaryButtonStyle} onClick={() => setEnteredApp(true)}>
+              <button style={primaryButtonStyle} onClick={() => setEnteredApp(true)}>
                 Launch App
               </button>
 
@@ -74,7 +61,7 @@ function App() {
             </div>
           </div>
 
-          <div id="preview" style={previewCardStyle}>
+          <div style={previewCardStyle}>
             <div style={previewHeaderStyle}>
               <span style={previewDotPink} />
               <span style={previewDotYellow} />
@@ -95,17 +82,17 @@ function App() {
           </div>
         </section>
 
-        <section id="features" style={featuresSectionStyle}>
-          <div style={featuresHeaderStyle}>
-            <p style={featuresEyebrowStyle}>WHY HABITFLOW</p>
-            <h2 style={featuresTitleStyle}>Everything you need to stay consistent.</h2>
-            <p style={featuresTextStyle}>
+        <section style={featuresSectionStyle}>
+          <div style={featureSectionHeaderStyle}>
+            <p style={featureSectionEyebrowStyle}>WHY HABITFLOW</p>
+            <h2 style={featureSectionTitleStyle}>Everything you need to stay consistent.</h2>
+            <p style={featureSectionTextStyle}>
               HabitFlow combines secure authentication, productivity tracking, and
               visual analytics into one focused full-stack application.
             </p>
           </div>
 
-          <div style={featuresGridStyle}>
+          <div style={featureGridStyle}>
             <div style={featureCardStyle}>
               <div style={featureIconStyle}>🔐</div>
               <h3 style={featureCardTitleStyle}>Secure access</h3>
@@ -139,6 +126,11 @@ function App() {
             </div>
           </div>
         </section>
+
+
+        <footer style={footerStyle}>
+          HabitFlow © {new Date().getFullYear()} — Built by Safeer Ahmad
+        </footer>
       </div>
     </div>
   );
@@ -152,15 +144,15 @@ const pageStyle = {
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "center",
-  padding: 0,
-  margin: 0,
+  padding: "0",
+  margin: "0",
   overflowY: "auto",
   overflowX: "hidden",
   background:
     "radial-gradient(circle at top left, rgba(139,92,246,0.22), transparent 24%), radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 22%), linear-gradient(135deg, #151937 0%, #091224 58%, #030712 100%)",
 };
 
-const shellStyle = {
+const siteShellStyle = {
   width: "100%",
   maxWidth: "1560px",
   padding: "24px 32px 48px",
@@ -191,40 +183,102 @@ const brandStyle = {
 const navLinksStyle = {
   display: "flex",
   alignItems: "center",
-  gap: "22px",
-  flexWrap: "wrap",
+  gap: "14px",
 };
 
-const navLinkStyle = {
+const navTagStyle = {
   color: "#cbd5e1",
-  textDecoration: "none",
-  fontSize: "15px",
-  fontWeight: 600,
-};
-
-const navButtonStyle = {
-  border: "none",
-  borderRadius: "12px",
-  padding: "12px 18px",
   fontSize: "14px",
-  fontWeight: 700,
-  color: "#fff",
-  background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
-  cursor: "pointer",
-  boxShadow: "0 12px 24px rgba(236,72,153,0.18)",
+  fontWeight: 600,
+  padding: "10px 14px",
+  borderRadius: "999px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.08)",
 };
 
-const heroStyle = {
+const heroWrapperStyle = {
   width: "100%",
   display: "grid",
   gridTemplateColumns: "1.2fr 0.9fr",
   gap: "36px",
   alignItems: "center",
+  padding: "12px 0 0",
+  margin: "0 auto",
 };
 
 const heroContentStyle = {
   display: "grid",
   gap: "22px",
+};
+
+const featuresSectionStyle = {
+  display: "grid",
+  gap: "24px",
+  paddingTop: "10px",
+};
+
+const featureSectionHeaderStyle = {
+  display: "grid",
+  gap: "10px",
+  maxWidth: "820px",
+};
+
+const featureSectionEyebrowStyle = {
+  margin: 0,
+  color: "#c4b5fd",
+  fontWeight: 700,
+  fontSize: "13px",
+  letterSpacing: "1.8px",
+};
+
+const featureSectionTitleStyle = {
+  margin: 0,
+  fontSize: "42px",
+  lineHeight: 1.08,
+  color: "#f8fafc",
+  fontWeight: 800,
+  letterSpacing: "-1px",
+};
+
+const featureSectionTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "18px",
+  lineHeight: 1.7,
+};
+
+const featureGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: "16px",
+};
+
+const featureCardStyle = {
+  borderRadius: "20px",
+  padding: "22px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 16px 36px rgba(0,0,0,0.18)",
+};
+
+const featureIconStyle = {
+  fontSize: "24px",
+  marginBottom: "12px",
+};
+
+const featureCardTitleStyle = {
+  margin: "0 0 8px 0",
+  color: "#f8fafc",
+  fontSize: "20px",
+  fontWeight: 700,
+};
+
+const featureCardTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "15px",
+  lineHeight: 1.7,
 };
 
 const eyebrowStyle = {
@@ -375,74 +429,12 @@ const featureItemStyle = {
   border: "1px solid rgba(255,255,255,0.06)",
 };
 
-const featuresSectionStyle = {
-  display: "grid",
-  gap: "24px",
-  paddingTop: "10px",
-};
 
-const featuresHeaderStyle = {
-  display: "grid",
-  gap: "10px",
-  maxWidth: "820px",
-};
-
-const featuresEyebrowStyle = {
-  margin: 0,
-  color: "#c4b5fd",
-  fontWeight: 700,
+const footerStyle = {
+  textAlign: "center",
+  color: "#94a3b8",
   fontSize: "13px",
-  letterSpacing: "1.8px",
-};
-
-const featuresTitleStyle = {
-  margin: 0,
-  fontSize: "42px",
-  lineHeight: 1.08,
-  color: "#f8fafc",
-  fontWeight: 800,
-  letterSpacing: "-1px",
-};
-
-const featuresTextStyle = {
-  margin: 0,
-  color: "#cbd5e1",
-  fontSize: "18px",
-  lineHeight: 1.7,
-};
-
-const featuresGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: "16px",
-};
-
-const featureCardStyle = {
-  borderRadius: "20px",
-  padding: "22px",
-  background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  backdropFilter: "blur(10px)",
-  boxShadow: "0 16px 36px rgba(0,0,0,0.18)",
-};
-
-const featureIconStyle = {
-  fontSize: "24px",
-  marginBottom: "12px",
-};
-
-const featureCardTitleStyle = {
-  margin: "0 0 8px 0",
-  color: "#f8fafc",
-  fontSize: "20px",
-  fontWeight: 700,
-};
-
-const featureCardTextStyle = {
-  margin: 0,
-  color: "#cbd5e1",
-  fontSize: "15px",
-  lineHeight: 1.7,
+  paddingBottom: "8px",
 };
 
 export default App;
