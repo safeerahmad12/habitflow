@@ -138,8 +138,10 @@ function Dashboard() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [frequencyFilter, setFrequencyFilter] = useState("All");
   const [message, setMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
   const [weeklyChart, setWeeklyChart] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const [authMode, setAuthMode] = useState("login");
   const [authData, setAuthData] = useState(emptyAuthForm);
@@ -154,9 +156,24 @@ function Dashboard() {
   const [userEmail, setUserEmail] = useState(
     localStorage.getItem("habitflow_user_email") || ""
   );
+    const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1100;
+
+  const showSuccessToast = (text) => {
+    setToastMessage(text);
+  };
 
   const loadHabits = async () => {
     try {
+      setDashboardLoading(true);
       const [habitsRes, weeklyRes, heatmapRes] = await Promise.all([
         API.get("/habits/"),
         API.get("/habits/analytics/weekly"),
@@ -169,6 +186,8 @@ function Dashboard() {
     } catch (error) {
       console.error("Error loading habits:", error);
       setMessage(error?.response?.data?.detail || "Failed to load habits.");
+    } finally {
+      setDashboardLoading(false);
     }
   };
 
@@ -177,6 +196,16 @@ function Dashboard() {
       loadHabits();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+
+    const timer = setTimeout(() => {
+      setToastMessage("");
+    }, 2400);
+
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -216,10 +245,10 @@ function Dashboard() {
 
       if (editingId) {
         await API.put(`/habits/${editingId}`, payload);
-        setMessage("Habit updated successfully.");
+        showSuccessToast("Habit updated successfully.");
       } else {
         await API.post("/habits/", payload);
-        setMessage("Habit added successfully.");
+        showSuccessToast("Habit added successfully.");
       }
 
       resetForm();
@@ -250,7 +279,7 @@ function Dashboard() {
       setUserEmail(res.data.user_email);
       setAuthData(emptyAuthForm);
       setOtpSent(false);
-      setMessage("Login successful.");
+      setMessage("");
     } catch (error) {
       console.error("Login error:", error);
       setMessage(error?.response?.data?.detail || "Login failed.");
@@ -278,7 +307,7 @@ function Dashboard() {
       setAuthData(emptyAuthForm);
       setOtpSent(false);
       setForgotMode(false);
-      setMessage("Google login successful.");
+      setMessage("");
     } catch (error) {
       console.error("Google login error:", error);
       setMessage(error?.response?.data?.detail || "Google login failed.");
@@ -366,7 +395,7 @@ function Dashboard() {
       setUserEmail(res.data.user_email);
       setAuthData(emptyAuthForm);
       setOtpSent(false);
-      setMessage("Account verified and created successfully.");
+      setMessage("");
     } catch (error) {
       console.error("Verify OTP error:", error);
       setMessage(error?.response?.data?.detail || "OTP verification failed.");
@@ -406,10 +435,9 @@ function Dashboard() {
 
     try {
       const res = await API.post("/auth/reset-password", {
-        name: authData.name || "Reset User",
         email: authData.email,
-        password: authData.new_password,
-        otp_code: authData.reset_code,
+        reset_token: authData.reset_code,
+        new_password: authData.new_password,
       });
 
       setMessage(res.data.message || "Password reset successful. You can now log in.");
@@ -425,6 +453,19 @@ function Dashboard() {
     } finally {
       setAuthLoading(false);
     }
+  };
+
+  const handleChangeUsername = () => {
+    const nextName = window.prompt("Enter your new display name", userName || "");
+
+    if (!nextName) return;
+
+    const trimmedName = nextName.trim();
+    if (!trimmedName) return;
+
+    localStorage.setItem("habitflow_user_name", trimmedName);
+    setUserName(trimmedName);
+    showSuccessToast("Display name updated.");
   };
 
   const handleLogout = () => {
@@ -445,6 +486,8 @@ function Dashboard() {
     setOtpSent(false);
     setForgotMode(false);
   };
+
+  
 
   const handleEdit = (habit) => {
     setFormData({
@@ -467,7 +510,7 @@ function Dashboard() {
       if (editingId === habitId) {
         resetForm();
       }
-      setMessage("Habit deleted successfully.");
+      showSuccessToast("Habit deleted successfully.");
       await loadHabits();
     } catch (error) {
       console.error("Error deleting habit:", error);
@@ -478,7 +521,7 @@ function Dashboard() {
   const handleCompleteToday = async (habitId) => {
     try {
       await API.post(`/habits/${habitId}/complete`);
-      setMessage("Habit completed for today.");
+      showSuccessToast("Habit completed for today.");
       await loadHabits();
     } catch (error) {
       console.error("Error completing habit:", error);
@@ -489,7 +532,7 @@ function Dashboard() {
   const handleUndoToday = async (habitId) => {
     try {
       await API.delete(`/habits/${habitId}/complete`);
-      setMessage("Today's completion removed.");
+      showSuccessToast("Today's completion removed.");
       await loadHabits();
     } catch (error) {
       console.error("Error undoing completion:", error);
@@ -514,7 +557,7 @@ function Dashboard() {
         }
       }
 
-      setMessage("Healthy routine template added.");
+      showSuccessToast("Healthy routine template added.");
       await loadHabits();
     } catch (error) {
       console.error("Error adding healthy routine:", error);
@@ -651,24 +694,24 @@ function Dashboard() {
   if (!token) {
     return (
       <div style={shellStyle}>
-        <div style={containerStyle}>
-          <div style={heroCardStyle}>
+        <div style={containerStyle(isMobile)}>
+          <div style={heroCardStyle(isMobile)}>
             <div>
               <p style={eyebrowStyle}>PRODUCTIVITY SYSTEM</p>
-              <h1 style={heroTitleStyle}>HabitFlow</h1>
-              <p style={heroTextStyle}>
+              <h1 style={heroTitleStyle(isMobile)}>HabitFlow</h1>
+              <p style={heroTextStyle(isMobile)}>
                 Build better routines with streak tracking, smart insights, secure
                 authentication, and a clean personal dashboard designed for daily use.
               </p>
             </div>
 
-            <div style={authCardStyle}>
-              <div style={authSwitchStyle}>
+            <div style={authCardStyle(isMobile)}>
+              <div style={authSwitchStyle(isMobile)}>
                 <button
                   type="button"
                   onClick={() => switchAuthMode("login")}
                   style={{
-                    ...authTabStyle,
+                    ...authTabStyle(isMobile),
                     ...(authMode === "login" ? authTabActiveStyle : {}),
                   }}
                 >
@@ -678,7 +721,7 @@ function Dashboard() {
                   type="button"
                   onClick={() => switchAuthMode("register")}
                   style={{
-                    ...authTabStyle,
+                    ...authTabStyle(isMobile),
                     ...(authMode === "register" ? authTabActiveStyle : {}),
                   }}
                 >
@@ -865,19 +908,20 @@ function Dashboard() {
 
   return (
     <div style={shellStyle}>
-      <div style={containerStyle}>
-        <div style={heroCardStyle}>
+      <div style={containerStyle(isMobile)}>
+        <div style={heroCardStyle(isMobile)}>
           <div>
             <p style={eyebrowStyle}>PRODUCTIVITY SYSTEM</p>
-            <h1 style={heroTitleStyle}>HabitFlow Dashboard</h1>
-            <p style={heroTextStyle}>
+            <h1 style={heroTitleStyle(isMobile)}>HabitFlow Dashboard</h1>
+            <p style={heroTextStyle(isMobile)}>
               Build routines, manage habits, and track real daily consistency in
               your personal dashboard.
             </p>
           </div>
 
-          <div style={authCardStyle}>
-            <div style={accountHeaderStyle}>
+          <div style={authCardStyle(isMobile)}>
+            <div style={accountHeaderStyle(isMobile)}>
+
               <div style={avatarStyle}>
                 {(userName || "U").trim().charAt(0).toUpperCase()}
               </div>
@@ -889,15 +933,28 @@ function Dashboard() {
               </div>
             </div>
 
-            <button type="button" onClick={handleLogout} style={secondaryButtonStyle}>
-              Logout
-            </button>
+            <div style={accountButtonGroupStyle}>
+              <button type="button" onClick={handleChangeUsername} style={secondaryButtonStyle}>
+                Change Username
+              </button>
+              <button type="button" onClick={handleLogout} style={secondaryButtonStyle}>
+                Logout
+              </button>
+            </div>
           </div>
         </div>
 
         {message && <div style={messageBoxStyle}>{message}</div>}
+        {toastMessage && <div style={toastStyle}>{toastMessage}</div>}
+        {dashboardLoading ? (
+          <div style={loadingCardStyle}>
+            <div style={loadingPulseStyle} />
+            <p style={loadingTextStyle}>Loading your dashboard...</p>
+          </div>
+        ) : (
+          <>
 
-        <div style={statsGridStyle}>
+        <div style={statsGridStyle(isMobile, isTablet)}>
           <div
             style={statCardStyle}
             onMouseEnter={(e) => {
@@ -979,9 +1036,9 @@ function Dashboard() {
             <strong style={statValueStyle}>{totalCompletions}</strong>
           </div>
         </div>
-        <div style={analyticsGridStyle}>
+        <div style={analyticsGridStyle(isMobile, isTablet)}>
           <div
-            style={panelStyle}
+            style={panelStyle(isMobile)}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-4px)";
               e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
@@ -999,7 +1056,8 @@ function Dashboard() {
                 Last 7 days
               </span>
             </div>
-            <div style={chartWrapperStyle}>
+            <div style={chartWrapperStyle(isMobile)}>
+
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyChart}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
@@ -1020,7 +1078,7 @@ function Dashboard() {
           </div>
 
           <div
-            style={panelStyle}
+            style={stickyPanelStyle(isMobile)}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-4px)";
               e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
@@ -1050,7 +1108,7 @@ function Dashboard() {
           </div>
 
           <div
-            style={panelStyle}
+            style={panelStyle(isMobile)}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-4px)";
               e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
@@ -1069,9 +1127,10 @@ function Dashboard() {
               </span>
             </div>
 
-            <div style={heatmapWrapperStyle}>
+            <div style={heatmapWrapperStyle(isMobile)}>
               <div style={{ width: "100%" }}>
-                <div style={heatmapGridStyle}>
+                <div style={heatmapGridStyle(isMobile)}>
+
                   {heatmapWeeks.map((week, weekIndex) => (
                     <div key={weekIndex} style={heatmapColumnStyle}>
                       {week.map((day, dayIndex) => {
@@ -1087,7 +1146,8 @@ function Dashboard() {
                             key={`${weekIndex}-${dayIndex}`}
                             title={day.date ? `${day.date} • ${day.count} completion(s)` : "No data"}
                             style={{
-                              ...heatmapCellStyle,
+                              ...heatmapCellStyle(isMobile),
+
                               background: bg,
                             }}
                           />
@@ -1111,9 +1171,9 @@ function Dashboard() {
           </div>
         </div>
 
-        <div style={mainGridStyle}>
+        <div style={mainGridStyle(isMobile, isTablet)}>
           <div
-            style={panelStyle}
+            style={panelStyle(isMobile)}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-4px)";
               e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
@@ -1184,7 +1244,7 @@ function Dashboard() {
                 <option value="Weekly">Weekly</option>
               </select>
 
-              <div style={buttonRowStyle}>
+              <div style={buttonRowStyle(isMobile)}>
                 <button type="submit" style={primaryButtonStyle}>
                   {editingId ? "Update Habit" : "Add Habit"}
                 </button>
@@ -1199,7 +1259,7 @@ function Dashboard() {
           </div>
 
           <div
-            style={panelStyle}
+            style={panelStyle(isMobile)}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-4px)";
               e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
@@ -1218,7 +1278,7 @@ function Dashboard() {
               </span>
             </div>
 
-            <div style={filterGridStyle}>
+            <div style={filterGridStyle(isMobile)}>
               <input
                 type="text"
                 placeholder="Search habits"
@@ -1253,7 +1313,20 @@ function Dashboard() {
             </div>
 
             {filteredHabits.length === 0 ? (
-              <p style={{ color: "#cbd5e1" }}>No habits found.</p>
+              <div style={emptyStateStyle}>
+                <div style={emptyStateIconStyle}>✨</div>
+                <h3 style={emptyStateTitleStyle}>No habits yet</h3>
+                <p style={emptyStateTextStyle}>
+                  Start with a healthy routine template or create your first habit to begin tracking consistency.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAddHealthyRoutine}
+                  style={templateButtonStyle}
+                >
+                  Add Healthy Routine
+                </button>
+              </div>
             ) : (
               <div style={habitListStyle}>
                 {filteredHabits.map((habit) => {
@@ -1267,7 +1340,8 @@ function Dashboard() {
                   return (
                     <div
                       key={habit.id}
-                      style={habitCardStyle}
+                      style={habitCardStyle(isMobile)}
+
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = "translateY(-4px)";
                         e.currentTarget.style.boxShadow = "0 16px 30px rgba(0,0,0,0.18)";
@@ -1278,7 +1352,7 @@ function Dashboard() {
                       }}
                     >
                       <div style={habitTopStyle}>
-                        <h3 style={habitTitleStyle}>{habit.title}</h3>
+                        <h3 style={habitTitleStyle(isMobile)}>{habit.title}</h3>
 
                         {habit.completed_today ? (
                           <span style={completedBadgeStyle}>Completed Today</span>
@@ -1329,7 +1403,7 @@ function Dashboard() {
                         </div>
                       </div>
 
-                      <div style={buttonRowStyle}>
+                      <div style={buttonRowStyle(isMobile)}>
                         {habit.completed_today ? (
                           <button
                             type="button"
@@ -1372,6 +1446,9 @@ function Dashboard() {
           </div>
         </div>
 
+          </>
+        )}
+
         <div style={footerStyle}>
           HabitFlow © {new Date().getFullYear()} — Built by Safeer Ahmad
         </div>
@@ -1399,12 +1476,12 @@ const shellStyle = {
     "radial-gradient(circle at top left, rgba(139,92,246,0.22), transparent 24%), radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 22%), linear-gradient(135deg, #151937 0%, #091224 58%, #030712 100%)",
 };
 
-const containerStyle = {
+const containerStyle = (isMobile) => ({
   width: "100%",
   maxWidth: "1440px",
   margin: "0 auto",
-  padding: "0px 20px 28px",
-};
+  padding: isMobile ? "0 12px 24px" : "0 20px 28px",
+});
 
 const glassCardBase = {
   background: "rgba(15, 23, 42, 0.78)",
@@ -1413,20 +1490,20 @@ const glassCardBase = {
   boxShadow: "0 16px 36px rgba(0,0,0,0.24)",
 };
 
-const heroCardStyle = {
+const heroCardStyle = (isMobile) => ({
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 420px",
-  gap: "28px",
+  gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 420px",
+  gap: isMobile ? "18px" : "28px",
   alignItems: "center",
   minHeight: "0",
-  padding: "28px 30px",
+  padding: isMobile ? "20px 18px" : "28px 30px",
   borderRadius: "24px",
   background:
     "linear-gradient(135deg, rgba(8,15,35,0.96), rgba(6,13,30,0.92))",
   border: "1px solid rgba(255,255,255,0.08)",
   boxShadow: "0 24px 60px rgba(0,0,0,0.26)",
   marginBottom: "16px",
-};
+});
 
 const eyebrowStyle = {
   margin: "0 0 14px 0",
@@ -1437,28 +1514,28 @@ const eyebrowStyle = {
   color: "#c4b5fd",
 };
 
-const heroTitleStyle = {
+const heroTitleStyle = (isMobile) => ({
   margin: "0 0 10px 0",
-  fontSize: "54px",
+  fontSize: isMobile ? "38px" : "54px",
   lineHeight: 1.02,
   fontWeight: 800,
   color: "#f8fafc",
   letterSpacing: "-1px",
-};
+});
 
-const heroTextStyle = {
+const heroTextStyle = (isMobile) => ({
   margin: 0,
   maxWidth: "760px",
-  fontSize: "18px",
+  fontSize: isMobile ? "16px" : "18px",
   lineHeight: 1.75,
   color: "#cbd5e1",
-};
+});
 
-const authCardStyle = {
+const authCardStyle = (isMobile) => ({
   width: "100%",
-  maxWidth: "420px",
-  justifySelf: "end",
-  padding: "18px",
+  maxWidth: isMobile ? "100%" : "420px",
+  justifySelf: isMobile ? "stretch" : "end",
+  padding: isMobile ? "14px" : "18px",
   borderRadius: "20px",
   background: "rgba(255,255,255,0.05)",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -1466,25 +1543,25 @@ const authCardStyle = {
   backdropFilter: "blur(12px)",
   overflow: "hidden",
   boxSizing: "border-box",
-};
+});
 
-const authSwitchStyle = {
+const authSwitchStyle = (isMobile) => ({
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: "12px",
+  gap: isMobile ? "8px" : "12px",
   marginBottom: "18px",
-};
+});
 
-const authTabStyle = {
+const authTabStyle = (isMobile) => ({
   border: "none",
   borderRadius: "14px",
-  padding: "14px 18px",
-  fontSize: "16px",
+  padding: isMobile ? "12px 12px" : "14px 18px",
+  fontSize: isMobile ? "14px" : "16px",
   fontWeight: 700,
   color: "#e2e8f0",
   background: "rgba(255,255,255,0.07)",
   cursor: "pointer",
-};
+});
 
 const authTabActiveStyle = {
   background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
@@ -1508,20 +1585,24 @@ const messageBoxStyle = {
   fontSize: "14px",
 };
 
-const statsGridStyle = {
+const statsGridStyle = (isMobile, isTablet) => ({
   display: "grid",
-  gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+  gridTemplateColumns: isMobile
+    ? "repeat(2, minmax(0, 1fr))"
+    : isTablet
+      ? "repeat(3, minmax(0, 1fr))"
+      : "repeat(5, minmax(0, 1fr))",
   gap: "12px",
   marginBottom: "16px",
-};
+});
 
-const analyticsGridStyle = {
+const analyticsGridStyle = (isMobile, isTablet) => ({
   display: "grid",
-  gridTemplateColumns: "1.02fr 1.04fr 0.94fr",
+  gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr" : "1.02fr 1.04fr 0.94fr",
   gap: "16px",
   marginBottom: "18px",
   alignItems: "stretch",
-};
+});
 
 const insightsGridStyle = {
   display: "grid",
@@ -1553,41 +1634,42 @@ const insightTextStyle = {
   color: "#e2e8f0",
 };
 
-const chartWrapperStyle = {
+const chartWrapperStyle = (isMobile) => ({
   width: "100%",
-  height: "270px",
-};
+  height: isMobile ? "220px" : "270px",
+});
 
-const heatmapWrapperStyle = {
+const heatmapWrapperStyle = (isMobile) => ({
   width: "100%",
-  minHeight: "270px",
+  minHeight: isMobile ? "220px" : "270px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-};
+  overflowX: "auto",
+});
 
-const heatmapGridStyle = {
+const heatmapGridStyle = (isMobile) => ({
   display: "flex",
-  gap: "10px",
+  gap: isMobile ? "6px" : "10px",
   alignItems: "center",
   justifyContent: "center",
   marginBottom: "16px",
-};
+});
 
 const heatmapColumnStyle = {
   display: "grid",
   gridTemplateRows: "repeat(7, 1fr)",
-  gap: "10px",
+  gap: "6px",
 };
 
-const heatmapCellStyle = {
-  width: "22px",
-  height: "22px",
-  borderRadius: "6px",
+const heatmapCellStyle = (isMobile) => ({
+  width: isMobile ? "16px" : "22px",
+  height: isMobile ? "16px" : "22px",
+  borderRadius: isMobile ? "4px" : "6px",
   border: "1px solid rgba(255,255,255,0.06)",
   boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.02)",
   transition: "transform 0.15s ease",
-};
+});
 
 const statCardStyle = {
   ...glassCardBase,
@@ -1614,20 +1696,27 @@ const statValueStyle = {
   color: "#f8fafc",
 };
 
-const mainGridStyle = {
+const mainGridStyle = (isMobile, isTablet) => ({
   display: "grid",
-  gridTemplateColumns: "360px 1fr",
+  gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr" : "360px 1fr",
   gap: "16px",
   alignItems: "start",
-};
+});
 
-const panelStyle = {
+const panelStyle = (isMobile) => ({
   ...glassCardBase,
   borderRadius: "18px",
-  padding: "18px",
+  padding: isMobile ? "14px" : "18px",
   overflow: "hidden",
   transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
-};
+});
+
+const stickyPanelStyle = (isMobile) => ({
+  ...panelStyle(isMobile),
+  position: isMobile ? "static" : "sticky",
+  top: isMobile ? "auto" : "16px",
+  alignSelf: "start",
+});
 
 const panelHeadStyle = {
   display: "flex",
@@ -1665,26 +1754,26 @@ const inputStyle = {
   boxSizing: "border-box",
 };
 
-const filterGridStyle = {
+const filterGridStyle = (isMobile) => ({
   display: "grid",
-  gridTemplateColumns: "1.6fr 1fr 1fr",
+  gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr 1fr",
   gap: "10px",
   marginBottom: "14px",
-};
+});
 
 const habitListStyle = {
   display: "grid",
   gap: "10px",
 };
 
-const habitCardStyle = {
-  padding: "20px",
+const habitCardStyle = (isMobile) => ({
+  padding: isMobile ? "18px" : "24px",
   borderRadius: "18px",
   background:
     "linear-gradient(135deg, rgba(37,99,235,0.16), rgba(168,85,247,0.12))",
   border: "1px solid rgba(255,255,255,0.08)",
   transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
-};
+});
 
 const habitTopStyle = {
   display: "flex",
@@ -1695,27 +1784,27 @@ const habitTopStyle = {
   flexWrap: "wrap",
 };
 
-const habitTitleStyle = {
+const habitTitleStyle = (isMobile) => ({
   margin: 0,
-  fontSize: "24px",
+  fontSize: isMobile ? "20px" : "24px",
   lineHeight: 1.15,
   letterSpacing: "-0.3px",
   color: "#f8fafc",
-};
+});
 
 const habitDescriptionStyle = {
-  margin: "0 0 10px 0",
+  margin: "0 0 14px 0",
   color: "#dbeafe",
   fontSize: "15px",
-  lineHeight: 1.55,
+  lineHeight: 1.65,
 };
 
 const habitMetaStyle = {
   display: "grid",
-  gap: "4px",
+  gap: "6px",
   color: "#c7d2fe",
   fontSize: "14px",
-  marginBottom: "12px",
+  marginBottom: "14px",
 };
 
 const metaTopRowStyle = {
@@ -1756,7 +1845,8 @@ const streakBadgeStyle = {
 };
 
 const progressBlockStyle = {
-  marginTop: "6px",
+  marginTop: "10px",
+  marginBottom: "6px",
 };
 
 const progressLabelRowStyle = {
@@ -1783,12 +1873,13 @@ const progressFillStyle = {
   transition: "width 0.25s ease",
 };
 
-const buttonRowStyle = {
+const buttonRowStyle = (isMobile) => ({
   display: "flex",
-  gap: "6px",
+  flexDirection: isMobile ? "column" : "row",
+  gap: "8px",
   flexWrap: "wrap",
-  marginTop: "12px",
-};
+  marginTop: "14px",
+});
 
 const primaryButtonStyle = {
   width: "100%",
@@ -1896,11 +1987,17 @@ const pendingBadgeStyle = {
 };
 
 
-const accountHeaderStyle = {
+const accountHeaderStyle = (isMobile) => ({
   display: "flex",
-  alignItems: "center",
+  flexDirection: isMobile ? "column" : "row",
+  alignItems: isMobile ? "flex-start" : "center",
   gap: "12px",
   marginBottom: "14px",
+});
+
+const accountButtonGroupStyle = {
+  display: "grid",
+  gap: "10px",
 };
 
 const avatarStyle = {
@@ -1944,6 +2041,76 @@ const legendDotStyle = {
   height: "12px",
   borderRadius: "4px",
   border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const toastStyle = {
+  position: "sticky",
+  top: "12px",
+  zIndex: 50,
+  marginBottom: "14px",
+  padding: "14px 16px",
+  borderRadius: "14px",
+  background: "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(52,211,153,0.16))",
+  border: "1px solid rgba(16,185,129,0.28)",
+  color: "#d1fae5",
+  fontSize: "14px",
+  fontWeight: 700,
+  boxShadow: "0 14px 28px rgba(0,0,0,0.16)",
+  backdropFilter: "blur(10px)",
+};
+
+const loadingCardStyle = {
+  ...glassCardBase,
+  borderRadius: "18px",
+  padding: "36px 20px",
+  marginBottom: "18px",
+  display: "grid",
+  justifyItems: "center",
+  gap: "14px",
+};
+
+const loadingPulseStyle = {
+  width: "58px",
+  height: "58px",
+  borderRadius: "999px",
+  background: "linear-gradient(135deg, rgba(139,92,246,0.9), rgba(236,72,153,0.9))",
+  boxShadow: "0 14px 28px rgba(236,72,153,0.2)",
+  opacity: 0.9,
+};
+
+const loadingTextStyle = {
+  margin: 0,
+  color: "#e2e8f0",
+  fontSize: "16px",
+  fontWeight: 600,
+};
+
+const emptyStateStyle = {
+  display: "grid",
+  justifyItems: "start",
+  gap: "10px",
+  padding: "14px 4px 6px",
+};
+
+const emptyStateIconStyle = {
+  fontSize: "28px",
+  lineHeight: 1,
+};
+
+const emptyStateTitleStyle = {
+  margin: 0,
+  color: "#f8fafc",
+  fontSize: "22px",
+  fontWeight: 800,
+  letterSpacing: "-0.4px",
+};
+
+const emptyStateTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "15px",
+  lineHeight: 1.7,
+  maxWidth: "560px",
 };
 
 const footerStyle = {
