@@ -773,14 +773,14 @@ function Dashboard() {
 
     const dailyRate = dailyHabits
       ? Math.round(
-        (habits.filter(
-          (habit) =>
-            (habit.frequency || "").toLowerCase() === "daily" &&
-            habit.completed_today
-        ).length /
-          dailyHabits) *
-        100
-      )
+          (habits.filter(
+            (habit) =>
+              (habit.frequency || "").toLowerCase() === "daily" &&
+              habit.completed_today
+          ).length /
+            dailyHabits) *
+            100
+        )
       : 0;
 
     const strongPerformerText = topStreakHabit
@@ -822,6 +822,74 @@ function Dashboard() {
       },
     ];
   }, [habits, totalHabits, completedToday, dailyHabits]);
+
+  const achievementItems = useMemo(() => {
+    const achievements = [];
+
+    if (habits.some((habit) => (habit.current_streak || 0) >= 3)) {
+      achievements.push({
+        icon: "🎉",
+        title: "3-Day Streak",
+        text: "You reached an early consistency milestone.",
+      });
+    }
+
+    if (habits.some((habit) => (habit.current_streak || 0) >= 7)) {
+      achievements.push({
+        icon: "🔥",
+        title: "7-Day Streak",
+        text: "A full week of habit momentum unlocked.",
+      });
+    }
+
+    if (habits.some((habit) => (habit.current_streak || 0) >= 30)) {
+      achievements.push({
+        icon: "🚀",
+        title: "30-Day Consistency",
+        text: "You proved serious habit discipline over time.",
+      });
+    }
+
+    if (habits.some((habit) => (habit.current_streak || 0) >= 100)) {
+      achievements.push({
+        icon: "🏆",
+        title: "100-Day Legend",
+        text: "An elite streak milestone achieved.",
+      });
+    }
+
+    if (totalCompletions >= 25) {
+      achievements.push({
+        icon: "💎",
+        title: "25 Total Check-ins",
+        text: "You have built strong completion momentum.",
+      });
+    }
+
+    if (totalHabits > 0 && completedToday === totalHabits) {
+      achievements.push({
+        icon: "✅",
+        title: "Perfect Day",
+        text: "Every tracked habit is completed today.",
+      });
+    }
+
+    if (
+      dailyHabits > 0 &&
+      habits.filter(
+        (habit) =>
+          (habit.frequency || "").toLowerCase() === "daily" && habit.completed_today
+      ).length === dailyHabits
+    ) {
+      achievements.push({
+        icon: "📅",
+        title: "Daily Focus",
+        text: "All daily habits are completed today.",
+      });
+    }
+
+    return achievements;
+  }, [habits, totalCompletions, totalHabits, completedToday, dailyHabits]);
   const heatmapWeeks = useMemo(() => {
     return buildHeatmapGrid(heatmapData);
   }, [heatmapData]);
@@ -1291,6 +1359,48 @@ function Dashboard() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div
+            style={panelStyle(isMobile)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-4px)";
+              e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
+              e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+            }}
+          >
+            <div style={panelHeadStyle}>
+              <h2 style={panelTitleStyle}>Achievements</h2>
+              <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                Progress milestones
+              </span>
+            </div>
+
+            {achievementItems.length === 0 ? (
+              <div style={achievementEmptyStyle}>
+                <div style={achievementEmptyIconStyle}>🏅</div>
+                <p style={achievementEmptyTextStyle}>
+                  Complete habits consistently to unlock achievement badges.
+                </p>
+              </div>
+            ) : (
+              <div style={achievementGridStyle}>
+                {achievementItems.map((item) => (
+                  <div key={item.title} style={achievementCardStyle}>
+                    <div style={achievementIconStyle}>{item.icon}</div>
+                    <div style={achievementContentStyle}>
+                      <p style={achievementTitleStyle}>{item.title}</p>
+                      <p style={achievementTextStyle}>{item.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div
@@ -1932,6 +2042,72 @@ const insightTextStyle = {
   fontSize: "15px",
   lineHeight: 1.65,
   color: "#e2e8f0",
+};
+
+const achievementGridStyle = {
+  display: "grid",
+  gap: "12px",
+};
+
+const achievementCardStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "12px",
+  padding: "16px",
+  borderRadius: "16px",
+  background: "rgba(255,255,255,0.05)",
+  border: "1px solid rgba(255,255,255,0.07)",
+};
+
+const achievementIconStyle = {
+  width: "42px",
+  height: "42px",
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "20px",
+  background: "linear-gradient(135deg, rgba(139,92,246,0.22), rgba(236,72,153,0.16))",
+  border: "1px solid rgba(167,139,250,0.22)",
+  flexShrink: 0,
+};
+
+const achievementContentStyle = {
+  display: "grid",
+  gap: "6px",
+};
+
+const achievementTitleStyle = {
+  margin: 0,
+  color: "#f8fafc",
+  fontSize: "15px",
+  fontWeight: 800,
+};
+
+const achievementTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "14px",
+  lineHeight: 1.6,
+};
+
+const achievementEmptyStyle = {
+  display: "grid",
+  justifyItems: "start",
+  gap: "10px",
+  padding: "6px 2px 4px",
+};
+
+const achievementEmptyIconStyle = {
+  fontSize: "28px",
+  lineHeight: 1,
+};
+
+const achievementEmptyTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "15px",
+  lineHeight: 1.7,
 };
 
 const chartWrapperStyle = (isMobile) => ({

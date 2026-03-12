@@ -34,7 +34,7 @@ def send_habit_reminder_email(to_email: str, habit_title: str, reminder_time: st
         return
 
     msg = EmailMessage()
-    msg["Subject"] = f"HabitFlow Reminder: {habit_title}"
+    msg["Subject"] = f"HabitFlow • Reminder to complete: {habit_title}"
     msg["From"] = formataddr(("HabitFlow", from_email))
     msg["To"] = to_email
     msg.set_content(
@@ -45,44 +45,52 @@ def send_habit_reminder_email(to_email: str, habit_title: str, reminder_time: st
 
     html_content = f"""
     <html>
-      <body style="margin:0;padding:0;background:#eef2ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#0f172a;">
-        <div style="max-width:640px;margin:0 auto;padding:28px 16px;">
-          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;box-shadow:0 18px 40px rgba(15,23,42,0.10);">
-            <div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);padding:28px 28px 22px 28px;">
-              <p style="margin:0 0 10px 0;font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:#c4b5fd;font-weight:800;">
-                HabitFlow Reminder
-              </p>
-              <h1 style="margin:0;font-size:34px;line-height:1.15;color:#ffffff;font-weight:800;">
-                Time to complete your habit
-              </h1>
-            </div>
-
-            <div style="padding:28px;">
-              <p style="margin:0 0 18px 0;font-size:17px;line-height:1.7;color:#334155;">
-                This is your reminder to complete <strong style="color:#0f172a;">{habit_title}</strong> today and keep your consistency going.
-              </p>
-
-              <div style="display:inline-block;padding:11px 16px;border-radius:999px;background:#f3e8ff;border:1px solid #d8b4fe;color:#6d28d9;font-size:14px;font-weight:800;">
-                ⏰ Scheduled time: {reminder_time}
-              </div>
-
-              <div style="margin-top:24px;padding:18px 18px;border-radius:16px;background:#f8fafc;border:1px solid #e2e8f0;">
-                <p style="margin:0;font-size:15px;line-height:1.75;color:#475569;">
-                  Open HabitFlow, mark this habit as completed, and protect your streak.
+      <head>
+        <meta name="color-scheme" content="light only">
+        <meta name="supported-color-schemes" content="light only">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#111827;">
+        <div style="width:100%;background:#f3f4f6;padding:24px 12px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:20px;overflow:hidden;box-shadow:0 10px 28px rgba(15,23,42,0.08);">
+            <tr>
+              <td style="background:linear-gradient(135deg,#1e1b4b,#4338ca);padding:24px 24px 18px 24px;">
+                <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#ddd6fe;font-weight:800;">
+                  ⏰ HabitFlow Reminder
                 </p>
-              </div>
+                <h1 style="margin:0;font-size:30px;line-height:1.2;color:#ffffff;font-weight:800;">
+                  Time to complete your habit
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px;background:#ffffff;">
+                <p style="margin:0 0 16px 0;font-size:16px;line-height:1.75;color:#334155;">
+                  This is your reminder to complete <strong style="color:#111827;">{habit_title}</strong> today and keep your streak alive.
+                </p>
 
-              <div style="margin-top:24px;">
-                <a href="https://habitflow-eosin.vercel.app" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#8b5cf6;color:#ffffff;text-decoration:none;font-size:14px;font-weight:800;">
-                  Open HabitFlow
-                </a>
-              </div>
+                <div style="display:inline-block;padding:10px 14px;border-radius:999px;background:#f5f3ff;border:1px solid #ddd6fe;color:#6d28d9;font-size:14px;font-weight:800;">
+                  ⏰ Scheduled time: {reminder_time}
+                </div>
 
-              <p style="margin:24px 0 0 0;font-size:13px;color:#94a3b8;line-height:1.6;">
-                Sent automatically by HabitFlow.
-              </p>
-            </div>
-          </div>
+                <div style="margin-top:20px;padding:16px;border-radius:14px;background:#f8fafc;border:1px solid #e5e7eb;">
+                  <p style="margin:0;font-size:15px;line-height:1.7;color:#475569;">
+                    Open HabitFlow, mark this habit as completed, and protect your progress for today.
+                  </p>
+                </div>
+
+                <div style="margin-top:22px;">
+                  <a href="https://habitflow-eosin.vercel.app" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#8b5cf6;color:#ffffff !important;text-decoration:none;font-size:14px;font-weight:800;">
+                    Open HabitFlow
+                  </a>
+                </div>
+
+                <p style="margin:22px 0 0 0;font-size:13px;color:#94a3b8;line-height:1.6;">
+                  Sent automatically by HabitFlow.
+                </p>
+              </td>
+            </tr>
+          </table>
         </div>
       </body>
     </html>
@@ -102,26 +110,41 @@ def check_and_send_habit_reminders():
         db = SessionLocal()
         try:
             now = datetime.now()
-            current_time = now.strftime("%H:%M")
-            previous_time = (now - timedelta(minutes=1)).strftime("%H:%M")
             today = now.date()
 
-            due_habits = (
+            reminder_candidates = (
                 db.query(models.Habit)
                 .filter(models.Habit.reminder_enabled == True)
-                .filter(models.Habit.reminder_time.in_([current_time, previous_time]))
+                .filter(models.Habit.reminder_time.isnot(None))
                 .all()
             )
             print(
-                f"Reminder worker tick at {current_time} (also checking {previous_time}): "
-                f"found {len(due_habits)} due habit(s)."
+                f"Reminder worker tick at {now.strftime('%H:%M:%S')}: "
+                f"checking {len(reminder_candidates)} reminder-enabled habit(s)."
             )
 
-            for habit in due_habits:
+            for habit in reminder_candidates:
                 user = db.query(models.User).filter(models.User.id == habit.user_id).first()
                 if not user or not user.email:
                     continue
                 print(f"Checking reminder for habit {habit.id} ({habit.title}) -> {user.email}")
+
+                try:
+                    scheduled_time = datetime.strptime(habit.reminder_time, "%H:%M").time()
+                except ValueError:
+                    print(f"Skipping habit {habit.id}: invalid reminder_time '{habit.reminder_time}'.")
+                    continue
+
+                scheduled_datetime = datetime.combine(today, scheduled_time)
+                seconds_since_due = (now - scheduled_datetime).total_seconds()
+
+                if seconds_since_due < 0:
+                 print(f"Skipping habit {habit.id}: reminder time not reached yet.")
+                 continue
+      
+                if seconds_since_due > 180:
+                 print(f"Skipping habit {habit.id}: reminder window expired.")
+                 continue
 
                 already_sent_today = (
                     habit.last_reminder_sent_at is not None
