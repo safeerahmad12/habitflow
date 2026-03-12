@@ -74,11 +74,14 @@ def serialize_habit(habit):
         "description": habit.description,
         "category": habit.category,
         "frequency": habit.frequency,
+        "reminder_enabled": habit.reminder_enabled,
+        "reminder_time": habit.reminder_time,
         "user_id": habit.user_id,
         "current_streak": current_streak,
         "longest_streak": longest_streak,
         "total_completions": total_completions,
         "completed_today": completed_today,
+        "last_reminder_sent_at": habit.last_reminder_sent_at,
     }
 
 
@@ -113,6 +116,8 @@ def create_habit(
         description=habit.description,
         category=habit.category,
         frequency=habit.frequency,
+        reminder_enabled=habit.reminder_enabled,
+        reminder_time=habit.reminder_time,
         user_id=current_user.id if current_user else None,
     )
     db.add(new_habit)
@@ -141,6 +146,8 @@ def update_habit(
     db_habit.description = habit.description
     db_habit.category = habit.category
     db_habit.frequency = habit.frequency
+    db_habit.reminder_enabled = habit.reminder_enabled
+    db_habit.reminder_time = habit.reminder_time
 
     db.commit()
     db.refresh(db_habit)

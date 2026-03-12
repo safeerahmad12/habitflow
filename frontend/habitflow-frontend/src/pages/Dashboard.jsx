@@ -16,6 +16,8 @@ const emptyForm = {
   description: "",
   category: "",
   frequency: "",
+  reminder_enabled: false,
+  reminder_time: "",
 };
 
 const emptyAuthForm = {
@@ -81,6 +83,7 @@ const getCategoryConfig = (category) => {
   if (value === "health") {
     return {
       label: "Health",
+      icon: "💚",
       background: "rgba(16,185,129,0.16)",
       color: "#86efac",
       border: "1px solid rgba(16,185,129,0.28)",
@@ -90,6 +93,7 @@ const getCategoryConfig = (category) => {
   if (value === "study") {
     return {
       label: "Study",
+      icon: "📘",
       background: "rgba(59,130,246,0.16)",
       color: "#93c5fd",
       border: "1px solid rgba(59,130,246,0.28)",
@@ -99,6 +103,7 @@ const getCategoryConfig = (category) => {
   if (value === "fitness") {
     return {
       label: "Fitness",
+      icon: "🏃",
       background: "rgba(239,68,68,0.16)",
       color: "#fca5a5",
       border: "1px solid rgba(239,68,68,0.28)",
@@ -108,6 +113,7 @@ const getCategoryConfig = (category) => {
   if (value === "productivity") {
     return {
       label: "Productivity",
+      icon: "⚡",
       background: "rgba(168,85,247,0.16)",
       color: "#d8b4fe",
       border: "1px solid rgba(168,85,247,0.28)",
@@ -117,6 +123,7 @@ const getCategoryConfig = (category) => {
   if (value === "personal") {
     return {
       label: "Personal",
+      icon: "🌟",
       background: "rgba(245,158,11,0.16)",
       color: "#fcd34d",
       border: "1px solid rgba(245,158,11,0.28)",
@@ -125,6 +132,7 @@ const getCategoryConfig = (category) => {
 
   return {
     label: category || "General",
+    icon: "📌",
     background: "rgba(148,163,184,0.16)",
     color: "#cbd5e1",
     border: "1px solid rgba(148,163,184,0.28)",
@@ -139,6 +147,7 @@ function Dashboard() {
   const [frequencyFilter, setFrequencyFilter] = useState("All");
   const [message, setMessage] = useState("");
   const [toastMessage, setToastMessage] = useState("");
+  const [celebrationHabitId, setCelebrationHabitId] = useState(null);
   const [weeklyChart, setWeeklyChart] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
 
@@ -159,6 +168,11 @@ function Dashboard() {
   const [profileNameInput, setProfileNameInput] = useState(
     localStorage.getItem("habitflow_user_name") || ""
   );
+  const [notificationPermission, setNotificationPermission] = useState(
+    typeof window !== "undefined" && "Notification" in window
+      ? Notification.permission
+      : "unsupported"
+  );
 
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
 
@@ -173,6 +187,43 @@ function Dashboard() {
 
   const showSuccessToast = (text) => {
     setToastMessage(text);
+  };
+
+  const requestNotificationPermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setMessage("Browser notifications are not supported on this device.");
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+
+      if (permission === "granted") {
+        showSuccessToast("Browser reminders enabled.");
+      } else {
+        setMessage("Notification permission was not granted.");
+      }
+    } catch (error) {
+      console.error("Notification permission error:", error);
+      setMessage("Failed to enable browser notifications.");
+    }
+  };
+
+  const triggerHabitReminder = (habit) => {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const reminderKey = `habitflow_reminder_${habit.id}_${todayKey}_${habit.reminder_time}`;
+
+    if (localStorage.getItem(reminderKey)) return;
+
+    localStorage.setItem(reminderKey, "sent");
+    showSuccessToast(`Reminder: ${habit.title} is due now ⏰`);
+
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      new Notification("HabitFlow Reminder", {
+        body: `${habit.title} is scheduled for ${habit.reminder_time}.`,
+      });
+    }
   };
 
   const loadHabits = async () => {
@@ -213,11 +264,49 @@ function Dashboard() {
     return () => clearTimeout(timer);
   }, [toastMessage]);
 
+  useEffect(() => {
+    if (!celebrationHabitId) return;
+
+    const timer = setTimeout(() => {
+      setCelebrationHabitId(null);
+    }, 1800);
+
+    return () => clearTimeout(timer);
+  }, [celebrationHabitId]);
+
+  useEffect(() => {
+    if (!token || !habits.length) return;
+
+    const checkReminders = () => {
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
+        now.getMinutes()
+      ).padStart(2, "0")}`;
+
+      habits.forEach((habit) => {
+        if (
+          habit.reminder_enabled &&
+          habit.reminder_time &&
+          !habit.completed_today &&
+          habit.reminder_time === currentTime
+        ) {
+          triggerHabitReminder(habit);
+        }
+      });
+    };
+
+    checkReminders();
+    const interval = setInterval(checkReminders, 30000);
+
+    return () => clearInterval(interval);
+  }, [token, habits]);
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
+      ...(name === "reminder_enabled" && !checked ? { reminder_time: "" } : {}),
     }));
   };
 
@@ -522,6 +611,8 @@ function Dashboard() {
       description: habit.description || "",
       category: habit.category || "",
       frequency: habit.frequency || "",
+      reminder_enabled: Boolean(habit.reminder_enabled),
+      reminder_time: habit.reminder_time || "",
     });
     setEditingId(habit.id);
     setMessage("Editing selected habit.");
@@ -547,8 +638,25 @@ function Dashboard() {
 
   const handleCompleteToday = async (habitId) => {
     try {
+      const currentHabit = habits.find((habit) => habit.id === habitId);
+      const nextStreak = (currentHabit?.current_streak || 0) + 1;
+
       await API.post(`/habits/${habitId}/complete`);
-      showSuccessToast("Habit completed for today.");
+
+      setCelebrationHabitId(habitId);
+
+      if (nextStreak === 3) {
+        showSuccessToast("Nice start! 3‑day streak achieved 🎉");
+      } else if (nextStreak === 7) {
+        showSuccessToast("Amazing! 7‑day streak! 🔥");
+      } else if (nextStreak === 30) {
+        showSuccessToast("Incredible! 30‑day habit consistency! 🚀");
+      } else if (nextStreak === 100) {
+        showSuccessToast("Legend! 100‑day streak unlocked 🏆");
+      } else {
+        showSuccessToast("Habit completed for today.");
+      }
+
       await loadHabits();
     } catch (error) {
       console.error("Error completing habit:", error);
@@ -1304,11 +1412,11 @@ function Dashboard() {
                 style={inputStyle}
               >
                 <option value="">Select category</option>
-                <option value="Health">Health</option>
-                <option value="Study">Study</option>
-                <option value="Fitness">Fitness</option>
-                <option value="Productivity">Productivity</option>
-                <option value="Personal">Personal</option>
+                <option value="Health">💚 Health</option>
+                <option value="Study">📘 Study</option>
+                <option value="Fitness">🏃 Fitness</option>
+                <option value="Productivity">⚡ Productivity</option>
+                <option value="Personal">🌟 Personal</option>
               </select>
 
               <select
@@ -1321,6 +1429,54 @@ function Dashboard() {
                 <option value="Daily">Daily</option>
                 <option value="Weekly">Weekly</option>
               </select>
+
+              <div style={reminderSectionStyle}>
+                <label style={reminderToggleLabelStyle}>
+                  <input
+                    type="checkbox"
+                    name="reminder_enabled"
+                    checked={Boolean(formData.reminder_enabled)}
+                    onChange={handleChange}
+                    style={checkboxStyle}
+                  />
+                  <span style={reminderToggleTextStyle}>Enable reminder</span>
+                </label>
+
+                {formData.reminder_enabled && (
+                  <>
+                    <input
+                      type="time"
+                      name="reminder_time"
+                      value={formData.reminder_time || ""}
+                      onChange={handleChange}
+                      style={inputStyle}
+                    />
+
+                    <div style={reminderStatusRowStyle}>
+                      <span style={reminderStatusTextStyle}>
+                        {notificationPermission === "granted"
+                          ? "Browser notifications enabled"
+                          : notificationPermission === "denied"
+                            ? "Browser notifications blocked"
+                            : notificationPermission === "unsupported"
+                              ? "Browser notifications not supported"
+                              : "Enable browser notifications for reminders"}
+                      </span>
+
+                      {notificationPermission !== "granted" &&
+                        notificationPermission !== "unsupported" && (
+                          <button
+                            type="button"
+                            onClick={requestNotificationPermission}
+                            style={reminderPermissionButtonStyle}
+                          >
+                            Enable Notifications
+                          </button>
+                        )}
+                    </div>
+                  </>
+                )}
+              </div>
 
               <div style={buttonRowStyle(isMobile)}>
                 <button type="submit" style={primaryButtonStyle}>
@@ -1370,11 +1526,23 @@ function Dashboard() {
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 style={inputStyle}
               >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
+                {categories.map((category) => {
+                  if (category === "All") {
+                    return (
+                      <option key={category} value={category}>
+                        All Categories
+                      </option>
+                    );
+                  }
+
+                  const categoryConfig = getCategoryConfig(category);
+
+                  return (
+                    <option key={category} value={category}>
+                      {categoryConfig.icon} {categoryConfig.label}
+                    </option>
+                  );
+                })}
               </select>
 
               <select
@@ -1418,8 +1586,7 @@ function Dashboard() {
                   return (
                     <div
                       key={habit.id}
-                      style={habitCardStyle(isMobile)}
-
+                      style={habitCardStyle(isMobile, celebrationHabitId === habit.id)}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = "translateY(-4px)";
                         e.currentTarget.style.boxShadow = "0 16px 30px rgba(0,0,0,0.18)";
@@ -1439,6 +1606,12 @@ function Dashboard() {
                         )}
                       </div>
 
+                      {celebrationHabitId === habit.id && (
+                        <div style={celebrationBannerStyle}>
+                          🎉 Great job! Streak boosted.
+                        </div>
+                      )}
+
                       <p style={habitDescriptionStyle}>
                         {habit.description || "No description"}
                       </p>
@@ -1452,8 +1625,20 @@ function Dashboard() {
                             border: categoryConfig.border,
                           }}
                         >
-                          {categoryConfig.label}
+                          {categoryConfig.icon} {categoryConfig.label}
                         </span>
+                        {habit.reminder_enabled && (
+                          <span
+                            style={{
+                              ...categoryBadgeStyle,
+                              background: "rgba(139,92,246,0.16)",
+                              color: "#e9d5ff",
+                              border: "1px solid rgba(139,92,246,0.28)",
+                            }}
+                          >
+                            ⏰ {habit.reminder_time ? habit.reminder_time : "Reminder"}
+                          </span>
+                        )}
 
                         <div style={streakBadgeRowStyle}>
                           <span style={streakBadgeStyle}>🔥 {habit.current_streak || 0} day streak</span>
@@ -1464,6 +1649,14 @@ function Dashboard() {
                       <div style={habitMetaStyle}>
                         <p><strong>Frequency:</strong> {habit.frequency || "Not set"}</p>
                         <p><strong>Total Completions:</strong> {habit.total_completions || 0}</p>
+                        <p>
+                          <strong>Reminder:</strong>{" "}
+                          {habit.reminder_enabled
+                            ? habit.reminder_time
+                              ? `On at ${habit.reminder_time}`
+                              : "On"
+                            : "Off"}
+                        </p>
                       </div>
 
                       <div style={progressBlockStyle}>
@@ -1531,6 +1724,36 @@ function Dashboard() {
         </div>
 
       </div>
+      {/* Confetti celebration overlay */}
+      {(() => {
+        // Minimal confetti overlay for celebration
+        const confettiBurst = !!celebrationHabitId;
+        const confettiColors = ["#8b5cf6", "#ec4899", "#10b981", "#fbbf24", "#f43f5e", "#38bdf8"];
+        const confettiCount = 22;
+        if (!confettiBurst) return null;
+        return (
+          <>
+            <style>{confettiAnimationCss}</style>
+            <div style={confettiOverlayStyle}>
+              {[...Array(confettiCount)].map((_, index) => (
+                <span
+                  key={index}
+                  style={{
+                    ...confettiPieceStyle,
+                    left: `${(index / confettiCount) * 100}%`,
+                    background: confettiColors[index % confettiColors.length],
+                    width: `${12 + (index % 3) * 4}px`,
+                    height: `${18 + (index % 4) * 5}px`,
+                    animationDuration: `${0.88 + (index % 7) * 0.13}s`,
+                    animationDelay: `${index * 0.03}s`,
+                    // transform: `rotate(${(index % 6) * 28}deg)`,
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
@@ -1843,13 +2066,19 @@ const habitListStyle = {
   gap: "10px",
 };
 
-const habitCardStyle = (isMobile) => ({
+const habitCardStyle = (isMobile, isCelebrating = false) => ({
   padding: isMobile ? "18px" : "24px",
   borderRadius: "18px",
-  background:
-    "linear-gradient(135deg, rgba(37,99,235,0.16), rgba(168,85,247,0.12))",
-  border: "1px solid rgba(255,255,255,0.08)",
-  transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+  background: isCelebrating
+    ? "linear-gradient(135deg, rgba(16,185,129,0.22), rgba(168,85,247,0.18))"
+    : "linear-gradient(135deg, rgba(37,99,235,0.16), rgba(168,85,247,0.12))",
+  border: isCelebrating
+    ? "1px solid rgba(52,211,153,0.34)"
+    : "1px solid rgba(255,255,255,0.08)",
+  boxShadow: isCelebrating
+    ? "0 0 0 1px rgba(52,211,153,0.12), 0 18px 36px rgba(16,185,129,0.16)"
+    : "none",
+  transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease",
 });
 
 const habitTopStyle = {
@@ -1897,6 +2126,7 @@ const categoryBadgeStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  gap: "6px",
   padding: "6px 10px",
   borderRadius: "999px",
   fontSize: "11px",
@@ -2239,3 +2469,102 @@ const footerStyle = {
 };
 
 export default Dashboard;
+const celebrationBannerStyle = {
+  marginBottom: "12px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  background: "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(52,211,153,0.16))",
+  border: "1px solid rgba(16,185,129,0.24)",
+  color: "#d1fae5",
+  fontSize: "13px",
+  fontWeight: 700,
+  letterSpacing: "0.1px",
+};
+const reminderSectionStyle = {
+  display: "grid",
+  gap: "10px",
+  padding: "12px 14px",
+  borderRadius: "14px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.06)",
+};
+
+const reminderToggleLabelStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  cursor: "pointer",
+};
+
+const reminderToggleTextStyle = {
+  color: "#f8fafc",
+  fontSize: "14px",
+  fontWeight: 600,
+};
+
+const checkboxStyle = {
+  width: "16px",
+  height: "16px",
+  accentColor: "#8b5cf6",
+};
+
+const reminderStatusRowStyle = {
+  display: "grid",
+  gap: "10px",
+};
+
+const reminderStatusTextStyle = {
+  color: "#cbd5e1",
+  fontSize: "13px",
+  lineHeight: 1.5,
+};
+
+const reminderPermissionButtonStyle = {
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: "12px",
+  padding: "10px 12px",
+  fontSize: "13px",
+  fontWeight: 700,
+  color: "#f8fafc",
+  background: "rgba(139,92,246,0.16)",
+  cursor: "pointer",
+};
+
+// Confetti celebration styles
+const confettiAnimationCss = `
+@keyframes habitflow-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -20px, 0) rotate(0deg) scale(0.9);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 320px, 0) rotate(260deg) scale(1.05);
+  }
+}
+`;
+
+const confettiOverlayStyle = {
+  pointerEvents: "none",
+  position: "fixed",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  overflow: "hidden",
+  zIndex: 120,
+};
+
+const confettiPieceStyle = {
+  position: "absolute",
+  top: "72px",
+  borderRadius: "3px",
+  opacity: 0,
+  animationName: "habitflow-confetti-fall",
+  animationTimingFunction: "ease-out",
+  animationFillMode: "forwards",
+  willChange: "transform, opacity",
+  boxShadow: "0 6px 12px rgba(0,0,0,0.12)",
+};

@@ -39,6 +39,9 @@ class Habit(Base):
     description = Column(String, nullable=True)
     category = Column(String, nullable=True)
     frequency = Column(String, nullable=True)
+    reminder_enabled = Column(Boolean, default=False)
+    reminder_time = Column(String, nullable=True)
+    last_reminder_sent_at = Column(DateTime, nullable=True)
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 

@@ -69,6 +69,8 @@ class HabitBase(BaseModel):
     description: Optional[str] = None
     category: Optional[str] = None
     frequency: Optional[str] = None
+    reminder_enabled: Optional[bool] = False
+    reminder_time: Optional[str] = None
     user_id: Optional[int] = None
 
 
@@ -82,6 +84,7 @@ class HabitResponse(HabitBase):
     longest_streak: int = 0
     total_completions: int = 0
     completed_today: bool = False
+    last_reminder_sent_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
