@@ -174,6 +174,11 @@ function Dashboard() {
       : "unsupported"
   );
 
+  const [selectedCalendarHabitId, setSelectedCalendarHabitId] = useState(null);
+  const [selectedCalendarHistory, setSelectedCalendarHistory] = useState(null);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
 
   useEffect(() => {
@@ -295,11 +300,50 @@ function Dashboard() {
       });
     };
 
+
     checkReminders();
     const interval = setInterval(checkReminders, 30000);
 
     return () => clearInterval(interval);
   }, [token, habits]);
+
+  useEffect(() => {
+    if (!token || !selectedCalendarHabitId) {
+      setSelectedCalendarHistory(null);
+      setCalendarLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadHabitHistory = async () => {
+      try {
+        setSelectedCalendarHistory(null);
+        setCalendarLoading(true);
+        const res = await API.get(`/habits/${selectedCalendarHabitId}/history`);
+
+        if (!cancelled) {
+          setSelectedCalendarHistory(res.data || null);
+        }
+      } catch (error) {
+        console.error("Error loading habit history:", error);
+        if (!cancelled) {
+          setSelectedCalendarHistory(null);
+          setMessage(error?.response?.data?.detail || "Failed to load habit calendar.");
+        }
+      } finally {
+        if (!cancelled) {
+          setCalendarLoading(false);
+        }
+      }
+    };
+
+    loadHabitHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, selectedCalendarHabitId]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -574,6 +618,9 @@ function Dashboard() {
       setUserName(updatedName);
       setProfileNameInput(updatedName);
       setShowProfileSettings(false);
+      setSelectedCalendarHabitId(null);
+      setSelectedCalendarHistory(null);
+      setCalendarLoading(false);
       setMessage("");
       showSuccessToast(res?.data?.message || "Display name updated.");
     } catch (error) {
@@ -591,6 +638,10 @@ function Dashboard() {
     setUserName("");
     setProfileNameInput("");
     setShowProfileSettings(false);
+    setActiveTab("overview");
+    setSelectedCalendarHabitId(null);
+    setSelectedCalendarHistory(null);
+    setCalendarLoading(false);
     setUserEmail("");
     setHabits([]);
     setWeeklyChart([]);
@@ -625,6 +676,10 @@ function Dashboard() {
 
     try {
       await API.delete(`/habits/${habitId}`);
+      if (selectedCalendarHabitId === habitId) {
+        setSelectedCalendarHabitId(null);
+        setSelectedCalendarHistory(null);
+      }
       if (editingId === habitId) {
         resetForm();
       }
@@ -773,14 +828,14 @@ function Dashboard() {
 
     const dailyRate = dailyHabits
       ? Math.round(
-          (habits.filter(
-            (habit) =>
-              (habit.frequency || "").toLowerCase() === "daily" &&
-              habit.completed_today
-          ).length /
-            dailyHabits) *
-            100
-        )
+        (habits.filter(
+          (habit) =>
+            (habit.frequency || "").toLowerCase() === "daily" &&
+            habit.completed_today
+        ).length /
+          dailyHabits) *
+        100
+      )
       : 0;
 
     const strongPerformerText = topStreakHabit
@@ -890,9 +945,62 @@ function Dashboard() {
 
     return achievements;
   }, [habits, totalCompletions, totalHabits, completedToday, dailyHabits]);
+
+  const selectedCalendarHabit = useMemo(() => {
+    if (!selectedCalendarHabitId) return null;
+
+    const baseHabit = habits.find((habit) => habit.id === selectedCalendarHabitId) || null;
+
+    if (!baseHabit) return null;
+
+    return {
+      ...baseHabit,
+      current_streak:
+        selectedCalendarHistory?.current_streak ?? baseHabit.current_streak ?? 0,
+      longest_streak:
+        selectedCalendarHistory?.longest_streak ?? baseHabit.longest_streak ?? 0,
+    };
+  }, [habits, selectedCalendarHabitId, selectedCalendarHistory]);
   const heatmapWeeks = useMemo(() => {
     return buildHeatmapGrid(heatmapData);
   }, [heatmapData]);
+
+  const buildHabitStreakCalendar = (historyData, fallbackHabit = null) => {
+    const days = [];
+    const historyEntries = historyData?.history || [];
+    const historyMap = new Map(
+      historyEntries.map((entry) => [entry.date, Boolean(entry.completed)])
+    );
+
+    const fallbackStreakLength = Math.max(fallbackHabit?.current_streak || 0, 0);
+
+    for (let index = 34; index >= 0; index -= 1) {
+      const date = new Date();
+      date.setDate(date.getDate() - index);
+      const dateLabel = date.toISOString().slice(0, 10);
+
+      let active = historyMap.get(dateLabel) === true;
+
+      if (!historyEntries.length && fallbackHabit) {
+        active = index < fallbackStreakLength;
+      }
+
+        const isToday = index === 0;
+
+      days.push({
+        dateLabel,
+        active,
+        isToday,
+      });
+    }
+
+    const weeks = [];
+    for (let i = 0; i < days.length; i += 7) {
+      weeks.push(days.slice(i, i + 7));
+    }
+
+    return weeks;
+  };
 
   if (!token) {
     return (
@@ -1290,184 +1398,103 @@ function Dashboard() {
             <strong style={statValueStyle}>{totalCompletions}</strong>
           </div>
         </div>
-        <div style={analyticsGridStyle(isMobile, isTablet)}>
-          <div
-            style={panelStyle(isMobile)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-4px)";
-              e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
-              e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-            }}
-          >
-            <div style={panelHeadStyle}>
-              <h2 style={panelTitleStyle}>Weekly Progress</h2>
-              <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
-                Last 7 days
-              </span>
-            </div>
-            <div style={chartWrapperStyle(isMobile)}>
-
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyChart}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                  <XAxis dataKey="label" stroke="#cbd5e1" tick={{ fontSize: 12 }} />
-                  <YAxis stroke="#cbd5e1" allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "#111827",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      borderRadius: "12px",
-                      color: "#f8fafc",
-                    }}
-                  />
-                  <Bar dataKey="count" radius={[8, 8, 0, 0]} fill="#ec4899" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div
-            style={panelStyle(isMobile)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-4px)";
-              e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
-              e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-            }}
-          >
-            <div style={panelHeadStyle}>
-              <h2 style={panelTitleStyle}>AI Habit Insights</h2>
-              <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
-                Live behavioral summary
-              </span>
-            </div>
-
-            <div style={insightsGridStyle}>
-              {insightItems.map((item, index) => (
-                <div key={index} style={insightCardStyle}>
-                  <p style={insightTitleStyle}>{item.title}</p>
-                  <p style={insightTextStyle}>{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            style={panelStyle(isMobile)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-4px)";
-              e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
-              e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-            }}
-          >
-            <div style={panelHeadStyle}>
-              <h2 style={panelTitleStyle}>Achievements</h2>
-              <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
-                Progress milestones
-              </span>
-            </div>
-
-            {achievementItems.length === 0 ? (
-              <div style={achievementEmptyStyle}>
-                <div style={achievementEmptyIconStyle}>🏅</div>
-                <p style={achievementEmptyTextStyle}>
-                  Complete habits consistently to unlock achievement badges.
-                </p>
-              </div>
-            ) : (
-              <div style={achievementGridStyle}>
-                {achievementItems.map((item) => (
-                  <div key={item.title} style={achievementCardStyle}>
-                    <div style={achievementIconStyle}>{item.icon}</div>
-                    <div style={achievementContentStyle}>
-                      <p style={achievementTitleStyle}>{item.title}</p>
-                      <p style={achievementTextStyle}>{item.text}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div
-            style={panelStyle(isMobile)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-4px)";
-              e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
-              e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-            }}
-          >
-            <div style={panelHeadStyle}>
-              <h2 style={panelTitleStyle}>Habit Activity Heatmap</h2>
-              <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
-                Last 5 weeks
-              </span>
-            </div>
-
-            <div style={heatmapWrapperStyle(isMobile)}>
-              <div style={{ width: "100%" }}>
-                <div style={heatmapGridStyle(isMobile)}>
-
-                  {heatmapWeeks.map((week, weekIndex) => (
-                    <div key={weekIndex} style={heatmapColumnStyle}>
-                      {week.map((day, dayIndex) => {
-                        let bg = "rgba(255,255,255,0.12)";
-
-                        if (day.count > 0 && day.count <= 1) bg = "#c084fc";
-                        else if (day.count > 1 && day.count <= 2) bg = "#a855f7";
-                        else if (day.count > 2 && day.count <= 4) bg = "#ec4899";
-                        else if (day.count > 4) bg = "#f43f5e";
-
-                        return (
-                          <div
-                            key={`${weekIndex}-${dayIndex}`}
-                            title={day.date ? `${day.date} • ${day.count} completion(s)` : "No data"}
-                            style={{
-                              ...heatmapCellStyle(isMobile),
-
-                              background: bg,
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-
-                <div style={heatmapLegendStyle}>
-                  <span style={heatmapLegendTextStyle}>Less</span>
-                  <span style={{ ...legendDotStyle, background: "rgba(255,255,255,0.12)" }} />
-                  <span style={{ ...legendDotStyle, background: "#c084fc" }} />
-                  <span style={{ ...legendDotStyle, background: "#a855f7" }} />
-                  <span style={{ ...legendDotStyle, background: "#ec4899" }} />
-                  <span style={{ ...legendDotStyle, background: "#f43f5e" }} />
-                  <span style={heatmapLegendTextStyle}>More</span>
-                </div>
-              </div>
-            </div>
+        <div style={dashboardTabsWrapStyle}>
+          <div style={dashboardTabsStyle(isMobile)}>
+            {[
+              { id: "overview", label: "Overview" },
+              { id: "habits", label: "Habits" },
+              { id: "progress", label: "Progress" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  ...dashboardTabButtonStyle,
+                  ...(activeTab === tab.id ? dashboardTabButtonActiveStyle : {}),
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div style={mainGridStyle(isMobile, isTablet)}>
+        {activeTab === "overview" && (
+          <div style={analyticsGridStyle(isMobile, isTablet)}>
+            <div
+              style={panelStyle(isMobile)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
+                e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              }}
+            >
+              <div style={panelHeadStyle}>
+                <h2 style={panelTitleStyle}>Weekly Progress</h2>
+                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                  Last 7 days
+                </span>
+              </div>
+              <div style={chartWrapperStyle(isMobile)}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyChart}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                    <XAxis dataKey="label" stroke="#cbd5e1" tick={{ fontSize: 12 }} />
+                    <YAxis stroke="#cbd5e1" allowDecimals={false} tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#111827",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: "12px",
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[8, 8, 0, 0]} fill="#ec4899" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div
+              style={panelStyle(isMobile)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
+                e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              }}
+            >
+              <div style={panelHeadStyle}>
+                <h2 style={panelTitleStyle}>AI Habit Insights</h2>
+                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                  Live behavioral summary
+                </span>
+              </div>
+
+              <div style={insightsGridStyle}>
+                {insightItems.map((item, index) => (
+                  <div key={index} style={insightCardStyle}>
+                    <p style={insightTitleStyle}>{item.title}</p>
+                    <p style={insightTextStyle}>{item.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "habits" && (
+          <div style={mainGridStyle(isMobile, isTablet)}>
           <div
             style={stickyPanelStyle(isMobile)}
             onMouseEnter={(e) => {
@@ -1539,6 +1566,7 @@ function Dashboard() {
                 <option value="Daily">Daily</option>
                 <option value="Weekly">Weekly</option>
               </select>
+              
 
               <div style={reminderSectionStyle}>
                 <label style={reminderToggleLabelStyle}>
@@ -1810,7 +1838,13 @@ function Dashboard() {
                         >
                           Edit
                         </button>
-
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCalendarHabitId(habit.id)}
+                          style={calendarButtonStyle}
+                        >
+                          View Calendar
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleDelete(habit.id)}
@@ -1826,8 +1860,216 @@ function Dashboard() {
             )}
           </div>
         </div>
+        )}
 
+        {activeTab === "progress" && (
+          <div style={progressGridStyle(isMobile, isTablet)}>
+            <div
+              style={panelStyle(isMobile)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
+                e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              }}
+            >
+              <div style={panelHeadStyle}>
+                <h2 style={panelTitleStyle}>Achievements</h2>
+                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                  Progress milestones
+                </span>
+              </div>
 
+              {achievementItems.length === 0 ? (
+                <div style={achievementEmptyStyle}>
+                  <div style={achievementEmptyIconStyle}>🏅</div>
+                  <p style={achievementEmptyTextStyle}>
+                    Complete habits consistently to unlock achievement badges.
+                  </p>
+                </div>
+              ) : (
+                <div style={achievementGridStyle}>
+                  {achievementItems.map((item) => (
+                    <div key={item.title} style={achievementCardStyle}>
+                      <div style={achievementIconStyle}>{item.icon}</div>
+                      <div style={achievementContentStyle}>
+                        <p style={achievementTitleStyle}>{item.title}</p>
+                        <p style={achievementTextStyle}>{item.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div
+              style={panelStyle(isMobile)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
+                e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              }}
+            >
+              <div style={panelHeadStyle}>
+                <h2 style={panelTitleStyle}>Habit Activity Heatmap</h2>
+                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                  Last 5 weeks
+                </span>
+              </div>
+
+              <div style={heatmapWrapperStyle(isMobile)}>
+                <div style={{ width: "100%" }}>
+                  <div style={heatmapGridStyle(isMobile)}>
+                    {heatmapWeeks.map((week, weekIndex) => (
+                      <div key={weekIndex} style={heatmapColumnStyle}>
+                        {week.map((day, dayIndex) => {
+                          let bg = "rgba(255,255,255,0.12)";
+
+                          if (day.count > 0 && day.count <= 1) bg = "#c084fc";
+                          else if (day.count > 1 && day.count <= 2) bg = "#a855f7";
+                          else if (day.count > 2 && day.count <= 4) bg = "#ec4899";
+                          else if (day.count > 4) bg = "#f43f5e";
+
+                          return (
+                            <div
+                              key={`${weekIndex}-${dayIndex}`}
+                              title={day.date ? `${day.date} • ${day.count} completion(s)` : "No data"}
+                              style={{
+                                ...heatmapCellStyle(isMobile),
+                                background: bg,
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={heatmapLegendStyle}>
+                    <span style={heatmapLegendTextStyle}>Less</span>
+                    <span style={{ ...legendDotStyle, background: "rgba(255,255,255,0.12)" }} />
+                    <span style={{ ...legendDotStyle, background: "#c084fc" }} />
+                    <span style={{ ...legendDotStyle, background: "#a855f7" }} />
+                    <span style={{ ...legendDotStyle, background: "#ec4899" }} />
+                    <span style={{ ...legendDotStyle, background: "#f43f5e" }} />
+                    <span style={heatmapLegendTextStyle}>More</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={panelStyle(isMobile)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
+                e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              }}
+            >
+              <div style={panelHeadStyle}>
+                <h2 style={panelTitleStyle}>Habit Streak Calendar</h2>
+                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                  5-week focused view
+                </span>
+              </div>
+
+              {!selectedCalendarHabit ? (
+                <div style={achievementEmptyStyle}>
+                  <div style={achievementEmptyIconStyle}>🗓️</div>
+                  <p style={achievementEmptyTextStyle}>
+                    Choose “View Calendar” on any habit card to inspect its recent completion history.
+                  </p>
+                </div>
+              ) : calendarLoading ? (
+                <div style={achievementEmptyStyle}>
+                  <div style={achievementEmptyIconStyle}>⏳</div>
+                  <p style={achievementEmptyTextStyle}>
+                    Loading real streak history for this habit...
+                  </p>
+                </div>
+              ) : (
+                <div style={streakCalendarPanelBodyStyle}>
+                  <div style={streakCalendarHeaderStyle}>
+                    <div>
+                      <p style={streakCalendarLabelStyle}>Selected habit</p>
+                      <h3 style={streakCalendarHabitTitleStyle}>{selectedCalendarHabit.title}</h3>
+                    </div>
+                    <span style={streakCalendarStreakBadgeStyle}>
+                      🔥 {selectedCalendarHabit.current_streak || 0}-day streak
+                    </span>
+                  </div>
+
+                  <div style={streakCalendarGridWrapStyle}>
+                    <div style={streakCalendarWeekdayRowStyle}>
+                      {calendarWeekdayLabels.map((label) => (
+                        <span key={label} style={streakCalendarWeekdayLabelStyle}>
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div style={heatmapGridStyle(isMobile)}>
+                      {buildHabitStreakCalendar(selectedCalendarHistory || {}, selectedCalendarHabit).map((week, weekIndex) => (
+                        <div key={weekIndex} style={heatmapColumnStyle}>
+                          {week.map((day, dayIndex) => (
+                            <div
+                              key={`${weekIndex}-${dayIndex}`}
+                              title={`${day.dateLabel} • ${day.active ? "Completed" : "No completion"}${day.isToday ? " • Today" : ""}`}
+                              style={{
+                                ...heatmapCellStyle(isMobile),
+                                background: day.active
+                                  ? "linear-gradient(135deg, #8b5cf6, #a855f7)"
+                                  : "rgba(255,255,255,0.12)",
+                                border: day.isToday
+                                  ? "1px solid rgba(244,114,182,0.85)"
+                                  : day.active
+                                    ? "1px solid rgba(167,139,250,0.34)"
+                                    : "1px solid rgba(255,255,255,0.06)",
+                                boxShadow: day.isToday
+                                  ? "0 0 0 2px rgba(244,114,182,0.14)"
+                                  : day.active
+                                    ? "0 10px 18px rgba(139,92,246,0.16)"
+                                    : "none",
+                              }}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={streakCalendarLegendStyle}>
+                      <span style={heatmapLegendTextStyle}>Legend</span>
+                      <span style={{ ...legendDotStyle, background: "rgba(255,255,255,0.12)" }} />
+                      <span style={heatmapLegendTextStyle}>Missed</span>
+                      <span style={{ ...legendDotStyle, background: "#8b5cf6" }} />
+                      <span style={heatmapLegendTextStyle}>Completed</span>
+                      <span style={streakCalendarTodayLegendDotStyle} />
+                      <span style={heatmapLegendTextStyle}>Today</span>
+                    </div>
+                  </div>
+
+                  <p style={streakCalendarHelperTextStyle}>
+                    This calendar shows the last 35 days for the selected habit. Purple cells represent completed days, and the outlined cell marks today.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div style={footerStyle}>
           HabitFlow © {new Date().getFullYear()} — Built by Safeer Ahmad
@@ -2449,6 +2691,106 @@ const deleteButtonStyle = {
   fontSize: "12px",
 };
 
+const calendarButtonStyle = {
+  border: "none",
+  borderRadius: "10px",
+  padding: "9px 12px",
+  color: "white",
+  fontWeight: 700,
+  cursor: "pointer",
+  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+  fontSize: "12px",
+};
+
+const streakCalendarPanelBodyStyle = {
+  display: "grid",
+  gap: "14px",
+};
+
+const streakCalendarHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const streakCalendarLabelStyle = {
+  margin: "0 0 4px 0",
+  fontSize: "11px",
+  fontWeight: 700,
+  letterSpacing: "0.8px",
+  textTransform: "uppercase",
+  color: "#94a3b8",
+};
+
+const streakCalendarHabitTitleStyle = {
+  margin: 0,
+  color: "#f8fafc",
+  fontSize: "20px",
+  fontWeight: 800,
+  lineHeight: 1.2,
+};
+
+const streakCalendarStreakBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: 800,
+  color: "#f8fafc",
+  background: "rgba(139,92,246,0.16)",
+  border: "1px solid rgba(167,139,250,0.28)",
+};
+
+const streakCalendarGridWrapStyle = {
+  overflowX: "auto",
+};
+
+const calendarWeekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+const streakCalendarWeekdayRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+  gap: "8px",
+  marginBottom: "10px",
+  maxWidth: "260px",
+};
+
+const streakCalendarWeekdayLabelStyle = {
+  color: "#94a3b8",
+  fontSize: "11px",
+  fontWeight: 700,
+  textAlign: "center",
+  textTransform: "uppercase",
+  letterSpacing: "0.6px",
+};
+
+const streakCalendarLegendStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "6px",
+};
+
+const streakCalendarTodayLegendDotStyle = {
+  width: "12px",
+  height: "12px",
+  borderRadius: "999px",
+  background: "transparent",
+  border: "2px solid rgba(244,114,182,0.9)",
+  boxSizing: "border-box",
+};
+
+const streakCalendarHelperTextStyle = {
+  margin: 0,
+  color: "#cbd5e1",
+  fontSize: "14px",
+  lineHeight: 1.7,
+};
+
 const completedBadgeStyle = {
   background: "rgba(16,185,129,0.18)",
   color: "#86efac",
@@ -2744,3 +3086,40 @@ const confettiPieceStyle = {
   willChange: "transform, opacity",
   boxShadow: "0 6px 12px rgba(0,0,0,0.12)",
 };
+const dashboardTabsWrapStyle = {
+  marginBottom: "16px",
+};
+
+const dashboardTabsStyle = (isMobile) => ({
+  display: "inline-grid",
+  gridTemplateColumns: isMobile ? "1fr 1fr 1fr" : "repeat(3, minmax(120px, 160px))",
+  gap: "10px",
+  padding: "8px",
+  borderRadius: "18px",
+  background: "rgba(15,23,42,0.72)",
+  border: "1px solid rgba(255,255,255,0.08)",
+});
+
+const dashboardTabButtonStyle = {
+  border: "none",
+  borderRadius: "12px",
+  padding: "12px 16px",
+  color: "#cbd5e1",
+  background: "transparent",
+  fontSize: "14px",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const dashboardTabButtonActiveStyle = {
+  color: "#ffffff",
+  background: "linear-gradient(135deg, #8b5cf6, #ec4899)",
+};
+
+const progressGridStyle = (isMobile, isTablet) => ({
+  display: "grid",
+  gridTemplateColumns: isMobile ? "1fr" : isTablet ? "1fr 1fr" : "0.95fr 0.95fr 1.1fr",
+  gap: "16px",
+  marginBottom: "18px",
+  alignItems: "stretch",
+});

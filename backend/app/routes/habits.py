@@ -253,6 +253,39 @@ def undo_habit_today(
     return {"message": "Today's completion removed"}
 
 
+@router.get("/{habit_id}/history")
+def habit_history(
+    habit_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user_optional),
+):
+    habit = (
+        get_user_habits_query(db, current_user)
+        .filter(models.Habit.id == habit_id)
+        .first()
+    )
+
+    if not habit:
+        raise HTTPException(status_code=404, detail="Habit not found")
+
+    logs = sorted(habit.logs or [], key=lambda log: log.date)
+
+    return {
+        "habit_id": habit.id,
+        "title": habit.title,
+        "current_streak": calculate_streaks(logs)[0],
+        "longest_streak": calculate_streaks(logs)[1],
+        "history": [
+            {
+                "date": log.date.strftime("%Y-%m-%d"),
+                "completed": bool(log.completed),
+                "notes": log.notes,
+            }
+            for log in logs
+        ],
+    }
+
+
 @router.get("/analytics/weekly")
 def weekly_progress(
     db: Session = Depends(get_db),
