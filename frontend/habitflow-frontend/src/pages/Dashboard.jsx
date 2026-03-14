@@ -178,6 +178,7 @@ function Dashboard() {
   const [selectedCalendarHistory, setSelectedCalendarHistory] = useState(null);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  const [theme, setTheme] = useState(localStorage.getItem("habitflow_theme") || "dark");
 
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
 
@@ -187,6 +188,35 @@ function Dashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+  const root = document.documentElement;
+
+  if (theme === "light") {
+    document.body.classList.add("light-theme");
+
+    root.style.setProperty("--bg-primary", "#f3f4f6");
+    root.style.setProperty("--card-bg", "rgba(255,255,255,0.92)");
+    root.style.setProperty("--card-elevated", "#ffffff");
+    root.style.setProperty("--text-primary", "#0f172a");
+    root.style.setProperty("--text-secondary", "#475569");
+    root.style.setProperty("--border-soft", "rgba(15,23,42,0.10)");
+    root.style.setProperty("--surface-soft", "rgba(15,23,42,0.05)");
+    root.style.setProperty("--surface-strong", "rgba(15,23,42,0.08)");
+  } else {
+    document.body.classList.remove("light-theme");
+
+    root.style.setProperty("--bg-primary", "#0b1120");
+    root.style.setProperty("--card-bg", "rgba(15,23,42,0.78)");
+    root.style.setProperty("--card-elevated", "rgba(15,23,42,0.86)");
+    root.style.setProperty("--text-primary", "#f8fafc");
+    root.style.setProperty("--text-secondary", "#cbd5e1");
+    root.style.setProperty("--border-soft", "rgba(255,255,255,0.08)");
+    root.style.setProperty("--surface-soft", "rgba(255,255,255,0.06)");
+    root.style.setProperty("--surface-strong", "rgba(255,255,255,0.10)");
+  }
+
+  localStorage.setItem("habitflow_theme", theme);
+}, [theme]);
   const isMobile = windowWidth < 768;
   const isTablet = windowWidth >= 768 && windowWidth < 1100;
 
@@ -946,6 +976,22 @@ function Dashboard() {
     return achievements;
   }, [habits, totalCompletions, totalHabits, completedToday, dailyHabits]);
 
+  const categoryChartData = useMemo(() => {
+    if (!habits.length) return [];
+
+    const map = {};
+
+    habits.forEach((habit) => {
+      const key = habit.category || "Other";
+      map[key] = (map[key] || 0) + 1;
+    });
+
+    return Object.keys(map).map((key) => ({
+      category: key,
+      count: map[key],
+    }));
+  }, [habits]);
+
   const selectedCalendarHabit = useMemo(() => {
     if (!selectedCalendarHabitId) return null;
 
@@ -1239,24 +1285,44 @@ function Dashboard() {
 
               <div style={authStatusStyle}>
                 <span style={accountLabelStyle}>Signed in as</span>
-                <strong style={{ fontSize: "18px", color: "#f8fafc" }}>{userName}</strong>
-                <span style={{ color: "#cbd5e1", fontSize: "14px" }}>{userEmail}</span>
+                <strong style={{ fontSize: "18px", color: "var(--text-primary)" }}>{userName}</strong>
+                <span style={{ color: "var(--text-primary)", fontSize: "14px" }}>{userEmail}</span>
               </div>
             </div>
 
             <div style={accountButtonGroupStyle}>
-              <button
+                            <button
                 type="button"
                 onClick={() => {
                   setShowProfileSettings((prev) => !prev);
                   setProfileNameInput(userName || "");
                   setMessage("");
                 }}
-                style={secondaryButtonStyle}
+                style={{
+                  ...secondaryButtonStyle,
+                  color: "var(--text-primary)",
+                }}
               >
                 {showProfileSettings ? "Close Settings" : "Profile Settings"}
               </button>
-              <button type="button" onClick={handleLogout} style={secondaryButtonStyle}>
+                            <button
+                type="button"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                style={{
+                  ...secondaryButtonStyle,
+                  color: "var(--text-primary)",
+                }}
+              >
+                {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+              </button>
+                            <button
+                type="button"
+                onClick={handleLogout}
+                style={{
+                  ...secondaryButtonStyle,
+                  color: "var(--text-primary)",
+                }}
+              >
                 Logout
               </button>
             </div>
@@ -1437,7 +1503,7 @@ function Dashboard() {
             >
               <div style={panelHeadStyle}>
                 <h2 style={panelTitleStyle}>Weekly Progress</h2>
-                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
                   Last 7 days
                 </span>
               </div>
@@ -1476,7 +1542,7 @@ function Dashboard() {
             >
               <div style={panelHeadStyle}>
                 <h2 style={panelTitleStyle}>AI Habit Insights</h2>
-                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
                   Live behavioral summary
                 </span>
               </div>
@@ -1645,7 +1711,7 @@ function Dashboard() {
           >
             <div style={panelHeadStyle}>
               <h2 style={panelTitleStyle}>Your Habits</h2>
-              <span style={{ color: "#cbd5e1", fontSize: "15px" }}>
+              <span style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
                 {filteredHabits.length} visible
               </span>
             </div>
@@ -1879,7 +1945,7 @@ function Dashboard() {
             >
               <div style={panelHeadStyle}>
                 <h2 style={panelTitleStyle}>Achievements</h2>
-                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
                   Progress milestones
                 </span>
               </div>
@@ -1921,7 +1987,7 @@ function Dashboard() {
             >
               <div style={panelHeadStyle}>
                 <h2 style={panelTitleStyle}>Habit Activity Heatmap</h2>
-                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
                   Last 5 weeks
                 </span>
               </div>
@@ -1982,7 +2048,7 @@ function Dashboard() {
             >
               <div style={panelHeadStyle}>
                 <h2 style={panelTitleStyle}>Habit Streak Calendar</h2>
-                <span style={{ color: "#cbd5e1", fontSize: "13px" }}>
+                <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
                   5-week focused view
                 </span>
               </div>
@@ -2030,21 +2096,21 @@ function Dashboard() {
                               key={`${weekIndex}-${dayIndex}`}
                               title={`${day.dateLabel} • ${day.active ? "Completed" : "No completion"}${day.isToday ? " • Today" : ""}`}
                               style={{
-                                ...heatmapCellStyle(isMobile),
-                                background: day.active
-                                  ? "linear-gradient(135deg, #8b5cf6, #a855f7)"
-                                  : "rgba(255,255,255,0.12)",
-                                border: day.isToday
-                                  ? "1px solid rgba(244,114,182,0.85)"
-                                  : day.active
-                                    ? "1px solid rgba(167,139,250,0.34)"
-                                    : "1px solid rgba(255,255,255,0.06)",
-                                boxShadow: day.isToday
-                                  ? "0 0 0 2px rgba(244,114,182,0.14)"
-                                  : day.active
-                                    ? "0 10px 18px rgba(139,92,246,0.16)"
-                                    : "none",
-                              }}
+  ...heatmapCellStyle(isMobile),
+  background: day.active
+    ? "linear-gradient(135deg, #8b5cf6, #a855f7)"
+    : "var(--surface-strong)",
+  border: day.isToday
+    ? "2px solid #ec4899"
+    : day.active
+      ? "1px solid rgba(167,139,250,0.34)"
+      : "1px solid var(--border-soft)",
+  boxShadow: day.isToday
+    ? "0 0 0 2px rgba(244,114,182,0.14)"
+    : day.active
+      ? "0 10px 18px rgba(139,92,246,0.16)"
+      : "none",
+}}
                             />
                           ))}
                         </div>
@@ -2053,7 +2119,7 @@ function Dashboard() {
 
                     <div style={streakCalendarLegendStyle}>
                       <span style={heatmapLegendTextStyle}>Legend</span>
-                      <span style={{ ...legendDotStyle, background: "rgba(255,255,255,0.12)" }} />
+                      <span style={{ ...legendDotStyle, background: "var(--surface-strong)" }} />
                       <span style={heatmapLegendTextStyle}>Missed</span>
                       <span style={{ ...legendDotStyle, background: "#8b5cf6" }} />
                       <span style={heatmapLegendTextStyle}>Completed</span>
@@ -2067,6 +2133,46 @@ function Dashboard() {
                   </p>
                 </div>
               )}
+            </div>
+
+            <div
+              style={panelStyle(isMobile)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 22px 42px rgba(0,0,0,0.22)";
+                e.currentTarget.style.borderColor = "rgba(167,139,250,0.24)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 16px 36px rgba(0,0,0,0.24)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+              }}
+            >
+              <div style={panelHeadStyle}>
+                <h2 style={panelTitleStyle}>Habit Categories</h2>
+                <span style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
+                  Distribution of your habits
+                </span>
+              </div>
+
+              <div style={chartWrapperStyle(isMobile)}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={categoryChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                    <XAxis dataKey="category" stroke="#cbd5e1" tick={{ fontSize: 12 }} />
+                    <YAxis stroke="#cbd5e1" allowDecimals={false} tick={{ fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#111827",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: "12px",
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[8,8,0,0]} fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
@@ -2124,8 +2230,9 @@ const shellStyle = {
   margin: "0",
   overflowY: "auto",
   overflowX: "hidden",
-  background:
-    "radial-gradient(circle at top left, rgba(139,92,246,0.22), transparent 24%), radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 22%), linear-gradient(135deg, #151937 0%, #091224 58%, #030712 100%)",
+  background: "var(--bg-primary)",
+  backgroundImage:
+    "radial-gradient(circle at top left, rgba(139,92,246,0.22), transparent 24%), radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 22%)",
 };
 
 const containerStyle = (isMobile) => ({
@@ -2136,10 +2243,10 @@ const containerStyle = (isMobile) => ({
 });
 
 const glassCardBase = {
-  background: "rgba(15, 23, 42, 0.78)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "var(--card-bg)",
+  border: "1px solid var(--border-soft)",
   backdropFilter: "blur(12px)",
-  boxShadow: "0 16px 36px rgba(0,0,0,0.24)",
+  boxShadow: "0 16px 36px rgba(0,0,0,0.18)",
 };
 
 const heroCardStyle = (isMobile) => ({
@@ -2150,10 +2257,9 @@ const heroCardStyle = (isMobile) => ({
   minHeight: "0",
   padding: isMobile ? "20px 18px" : "28px 30px",
   borderRadius: "24px",
-  background:
-    "linear-gradient(135deg, rgba(8,15,35,0.96), rgba(6,13,30,0.92))",
-  border: "1px solid rgba(255,255,255,0.08)",
-  boxShadow: "0 24px 60px rgba(0,0,0,0.26)",
+  background: "var(--card-elevated)",
+  border: "1px solid var(--border-soft)",
+  boxShadow: "0 24px 60px rgba(0,0,0,0.20)",
   marginBottom: "16px",
 });
 
@@ -2171,7 +2277,7 @@ const heroTitleStyle = (isMobile) => ({
   fontSize: isMobile ? "38px" : "54px",
   lineHeight: 1.02,
   fontWeight: 800,
-  color: "#f8fafc",
+  color: "var(--text-primary)",
   letterSpacing: "-1px",
 });
 
@@ -2180,7 +2286,7 @@ const heroTextStyle = (isMobile) => ({
   maxWidth: "760px",
   fontSize: isMobile ? "16px" : "18px",
   lineHeight: 1.75,
-  color: "#cbd5e1",
+  color: "var(--text-secondary)",
 });
 
 const authCardStyle = (isMobile) => ({
@@ -2189,9 +2295,9 @@ const authCardStyle = (isMobile) => ({
   justifySelf: isMobile ? "stretch" : "end",
   padding: isMobile ? "14px" : "18px",
   borderRadius: "20px",
-  background: "rgba(255,255,255,0.05)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  boxShadow: "0 16px 40px rgba(0,0,0,0.2)",
+  background: "var(--card-bg)",
+  border: "1px solid var(--border-soft)",
+  boxShadow: "0 16px 40px rgba(0,0,0,0.16)",
   backdropFilter: "blur(12px)",
   overflow: "hidden",
   boxSizing: "border-box",
@@ -2210,8 +2316,8 @@ const authTabStyle = (isMobile) => ({
   padding: isMobile ? "12px 12px" : "14px 18px",
   fontSize: isMobile ? "14px" : "16px",
   fontWeight: 700,
-  color: "#e2e8f0",
-  background: "rgba(255,255,255,0.07)",
+  color: "var(--text-secondary)",
+  background: "var(--surface-soft)",
   cursor: "pointer",
 });
 
@@ -2271,19 +2377,19 @@ const insightCardStyle = {
 };
 
 const insightTitleStyle = {
-  margin: "0 0 10px 0",
+  margin: 0,
+  color: "#c4b5fd",
   fontSize: "12px",
   fontWeight: 800,
-  color: "#d8b4fe",
+  letterSpacing: "1px",
   textTransform: "uppercase",
-  letterSpacing: "0.8px",
 };
 
 const insightTextStyle = {
   margin: 0,
+  color: "var(--text-primary)",
   fontSize: "15px",
-  lineHeight: 1.65,
-  color: "#e2e8f0",
+  lineHeight: 1.7,
 };
 
 const achievementGridStyle = {
@@ -2321,14 +2427,14 @@ const achievementContentStyle = {
 
 const achievementTitleStyle = {
   margin: 0,
-  color: "#f8fafc",
+  color: "var(--text-primary)",
   fontSize: "15px",
   fontWeight: 800,
 };
 
 const achievementTextStyle = {
   margin: 0,
-  color: "#cbd5e1",
+  color: "var(--text-secondary)",
   fontSize: "14px",
   lineHeight: 1.6,
 };
@@ -2347,7 +2453,7 @@ const achievementEmptyIconStyle = {
 
 const achievementEmptyTextStyle = {
   margin: 0,
-  color: "#cbd5e1",
+  color: "var(--text-secondary)",
   fontSize: "15px",
   lineHeight: 1.7,
 };
@@ -2359,34 +2465,32 @@ const chartWrapperStyle = (isMobile) => ({
 
 const heatmapWrapperStyle = (isMobile) => ({
   width: "100%",
-  minHeight: isMobile ? "220px" : "270px",
   display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+  justifyContent: "flex-start",
+  alignItems: "flex-start",
   overflowX: "auto",
+  paddingTop: "8px",
 });
 
 const heatmapGridStyle = (isMobile) => ({
   display: "flex",
-  gap: isMobile ? "6px" : "10px",
-  alignItems: "center",
-  justifyContent: "center",
-  marginBottom: "16px",
+  gap: isMobile ? "8px" : "10px",
+  alignItems: "flex-start",
+  justifyContent: "flex-start",
+  width: "fit-content",
 });
 
 const heatmapColumnStyle = {
   display: "grid",
-  gridTemplateRows: "repeat(7, 1fr)",
-  gap: "6px",
+  gap: "8px",
 };
 
 const heatmapCellStyle = (isMobile) => ({
-  width: isMobile ? "16px" : "22px",
-  height: isMobile ? "16px" : "22px",
-  borderRadius: isMobile ? "4px" : "6px",
-  border: "1px solid rgba(255,255,255,0.06)",
-  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.02)",
-  transition: "transform 0.15s ease",
+  width: isMobile ? "18px" : "20px",
+  height: isMobile ? "18px" : "20px",
+  borderRadius: "6px",
+  border: "1px solid var(--border-soft)",
+  boxSizing: "border-box",
 });
 
 const statCardStyle = {
@@ -2400,18 +2504,18 @@ const statCardStyle = {
 
 const statLabelStyle = {
   display: "block",
-  color: "#c4b5fd",
-  fontSize: "12px",
   marginBottom: "10px",
-  fontWeight: 700,
+  color: "var(--text-secondary)",
+  fontSize: "14px",
+  fontWeight: 600,
 };
 
 const statValueStyle = {
-  fontSize: "36px",
-  lineHeight: 1,
+  marginTop: "20px",
+  color: "var(--text-primary)",
+  fontSize: "42px",
   fontWeight: 800,
-  letterSpacing: "-0.8px",
-  color: "#f8fafc",
+  lineHeight: 1.1,
 };
 
 const mainGridStyle = (isMobile, isTablet) => ({
@@ -2430,10 +2534,16 @@ const panelStyle = (isMobile) => ({
 });
 
 const stickyPanelStyle = (isMobile) => ({
-  ...panelStyle(isMobile),
+  ...glassCardBase,
   position: isMobile ? "static" : "sticky",
-  top: isMobile ? "auto" : "16px",
+  top: isMobile ? "auto" : "20px",
   alignSelf: "start",
+  padding: isMobile ? "18px 16px" : "22px",
+  borderRadius: "22px",
+  background: "var(--card-elevated)",
+  border: "1px solid var(--border-soft)",
+  display: "grid",
+  gap: "16px",
 });
 
 const panelHeadStyle = {
@@ -2447,10 +2557,10 @@ const panelHeadStyle = {
 
 const panelTitleStyle = {
   margin: 0,
-  fontSize: "22px",
+  color: "var(--text-primary)",
+  fontSize: "24px",
   fontWeight: 800,
   letterSpacing: "-0.4px",
-  color: "#f8fafc",
 };
 
 const formColumnStyle = {
@@ -2461,13 +2571,12 @@ const formColumnStyle = {
 
 const inputStyle = {
   width: "100%",
-  maxWidth: "100%",
-  padding: "15px 16px",
+  padding: "14px 16px",
   borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.06)",
-  color: "#f8fafc",
-  fontSize: "15px",
+  border: "1px solid var(--border-soft)",
+  background: "var(--card-elevated)",
+  color: "var(--text-primary)",
+  fontSize: "16px",
   outline: "none",
   boxSizing: "border-box",
 };
@@ -2485,18 +2594,18 @@ const habitListStyle = {
 };
 
 const habitCardStyle = (isMobile, isCelebrating = false) => ({
-  padding: isMobile ? "18px" : "24px",
-  borderRadius: "18px",
-  background: isCelebrating
-    ? "linear-gradient(135deg, rgba(16,185,129,0.22), rgba(168,85,247,0.18))"
-    : "linear-gradient(135deg, rgba(37,99,235,0.16), rgba(168,85,247,0.12))",
-  border: isCelebrating
-    ? "1px solid rgba(52,211,153,0.34)"
-    : "1px solid rgba(255,255,255,0.08)",
+  position: "relative",
+  overflow: "hidden",
+  borderRadius: "22px",
+  padding: isMobile ? "18px 16px" : "22px 22px 20px",
+  background: "var(--card-elevated)",
+  border: `1px solid ${isCelebrating ? "rgba(236,72,153,0.35)" : "var(--border-soft)"}`,
   boxShadow: isCelebrating
-    ? "0 0 0 1px rgba(52,211,153,0.12), 0 18px 36px rgba(16,185,129,0.16)"
-    : "none",
-  transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease",
+    ? "0 18px 40px rgba(236,72,153,0.14)"
+    : "0 10px 24px rgba(15,23,42,0.08)",
+  transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease",
+  display: "grid",
+  gap: "14px",
 });
 
 const habitTopStyle = {
@@ -2510,25 +2619,25 @@ const habitTopStyle = {
 
 const habitTitleStyle = (isMobile) => ({
   margin: 0,
-  fontSize: isMobile ? "20px" : "24px",
-  lineHeight: 1.15,
+  color: "var(--text-primary)",
+  fontSize: isMobile ? "18px" : "20px",
+  fontWeight: 800,
   letterSpacing: "-0.3px",
-  color: "#f8fafc",
 });
 
 const habitDescriptionStyle = {
-  margin: "0 0 14px 0",
-  color: "#dbeafe",
-  fontSize: "15px",
-  lineHeight: 1.65,
+  margin: 0,
+  color: "var(--text-secondary)",
+  fontSize: "14px",
+  lineHeight: 1.7,
 };
 
 const habitMetaStyle = {
   display: "grid",
-  gap: "6px",
-  color: "#c7d2fe",
+  gap: "8px",
+  color: "var(--text-secondary)",
   fontSize: "14px",
-  marginBottom: "14px",
+  lineHeight: 1.6,
 };
 
 const metaTopRowStyle = {
@@ -2560,13 +2669,15 @@ const streakBadgeRowStyle = {
 const streakBadgeStyle = {
   display: "inline-flex",
   alignItems: "center",
-  padding: "6px 10px",
+  gap: "6px",
+  padding: "8px 12px",
   borderRadius: "999px",
-  fontSize: "11px",
+  background: "var(--surface-soft)",
+  border: "1px solid var(--border-soft)",
+  color: "var(--text-secondary)",
+  fontSize: "13px",
   fontWeight: 700,
-  color: "#f8fafc",
-  background: "rgba(255,255,255,0.08)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  whiteSpace: "nowrap",
 };
 
 const progressBlockStyle = {
@@ -2578,16 +2689,17 @@ const progressLabelRowStyle = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  fontSize: "12px",
-  color: "#cbd5e1",
-  marginBottom: "6px",
+  gap: "12px",
+  color: "var(--text-secondary)",
+  fontSize: "13px",
+  fontWeight: 700,
 };
 
 const progressTrackStyle = {
   width: "100%",
   height: "10px",
   borderRadius: "999px",
-  background: "rgba(255,255,255,0.08)",
+  background: "var(--surface-strong)",
   overflow: "hidden",
 };
 
@@ -2623,16 +2735,15 @@ const primaryButtonStyle = {
 
 const secondaryButtonStyle = {
   width: "100%",
-  maxWidth: "100%",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "14px",
-  padding: "14px 18px",
-  fontSize: "15px",
+  border: "1px solid var(--border-soft)",
+  borderRadius: "16px",
+  padding: "16px 18px",
+  background: "var(--surface-soft)",
+  color: "var(--text-primary)",
+  fontSize: "16px",
   fontWeight: 700,
-  color: "#e2e8f0",
-  background: "rgba(255,255,255,0.05)",
   cursor: "pointer",
-  boxSizing: "border-box",
+  transition: "all 0.18s ease",
 };
 
 const templateButtonStyle = {
@@ -2721,12 +2832,12 @@ const streakCalendarLabelStyle = {
   fontWeight: 700,
   letterSpacing: "0.8px",
   textTransform: "uppercase",
-  color: "#94a3b8",
+  color: "var(--text-secondary)",
 };
 
 const streakCalendarHabitTitleStyle = {
   margin: 0,
-  color: "#f8fafc",
+  color: "var(--text-primary)",
   fontSize: "20px",
   fontWeight: 800,
   lineHeight: 1.2,
@@ -2745,26 +2856,33 @@ const streakCalendarStreakBadgeStyle = {
 };
 
 const streakCalendarGridWrapStyle = {
+  width: "100%",
+  display: "grid",
+  gap: "12px",
+  justifyContent: "flex-start",
+  alignItems: "flex-start",
   overflowX: "auto",
+  paddingTop: "6px",
 };
 
 const calendarWeekdayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const streakCalendarWeekdayRowStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  gap: "8px",
+  gridTemplateColumns: "repeat(7, minmax(28px, 28px))",
+  gap: "10px",
   marginBottom: "10px",
-  maxWidth: "260px",
+  width: "fit-content",
 };
 
 const streakCalendarWeekdayLabelStyle = {
-  color: "#94a3b8",
+  color: "var(--text-secondary)",
   fontSize: "11px",
-  fontWeight: 700,
+  fontWeight: 800,
   textAlign: "center",
   textTransform: "uppercase",
-  letterSpacing: "0.6px",
+  letterSpacing: "0.2px",
+  width: "28px",
 };
 
 const streakCalendarLegendStyle = {
@@ -2776,39 +2894,45 @@ const streakCalendarLegendStyle = {
 };
 
 const streakCalendarTodayLegendDotStyle = {
-  width: "12px",
-  height: "12px",
+  width: "14px",
+  height: "14px",
   borderRadius: "999px",
   background: "transparent",
-  border: "2px solid rgba(244,114,182,0.9)",
+  border: "2px solid #ec4899",
   boxSizing: "border-box",
 };
 
 const streakCalendarHelperTextStyle = {
   margin: 0,
-  color: "#cbd5e1",
+  color: "var(--text-secondary)",
   fontSize: "14px",
   lineHeight: 1.7,
 };
 
 const completedBadgeStyle = {
-  background: "rgba(16,185,129,0.18)",
-  color: "#86efac",
-  padding: "5px 8px",
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "8px 12px",
   borderRadius: "999px",
-  fontSize: "10px",
-  fontWeight: 700,
-  border: "1px solid rgba(16,185,129,0.25)",
+  background: "rgba(16,185,129,0.12)",
+  border: "1px solid rgba(16,185,129,0.24)",
+  color: "#10b981",
+  fontSize: "12px",
+  fontWeight: 800,
+  whiteSpace: "nowrap",
 };
 
 const pendingBadgeStyle = {
-  background: "rgba(249,115,22,0.18)",
-  color: "#fdba74",
-  padding: "5px 8px",
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "8px 12px",
   borderRadius: "999px",
-  fontSize: "10px",
-  fontWeight: 700,
-  border: "1px solid rgba(249,115,22,0.25)",
+  background: "rgba(245,158,11,0.12)",
+  border: "1px solid rgba(245,158,11,0.24)",
+  color: "#b45309",
+  fontSize: "12px",
+  fontWeight: 800,
+  whiteSpace: "nowrap",
 };
 
 
@@ -2870,18 +2994,18 @@ const profileInfoBlockStyle = {
 };
 
 const profileInfoLabelStyle = {
-  fontSize: "11px",
-  textTransform: "uppercase",
+  color: "var(--text-secondary)",
+  fontSize: "12px",
+  fontWeight: 800,
   letterSpacing: "0.8px",
-  color: "#94a3b8",
-  fontWeight: 700,
+  textTransform: "uppercase",
 };
 
 const profileInfoValueStyle = {
-  color: "#f8fafc",
-  fontSize: "14px",
-  fontWeight: 600,
-  wordBreak: "break-word",
+  color: "var(--text-primary)",
+  fontSize: "15px",
+  fontWeight: 700,
+  lineHeight: 1.5,
 };
 
 const profileButtonRowStyle = {
@@ -2915,21 +3039,23 @@ const accountLabelStyle = {
 const heatmapLegendStyle = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
   gap: "8px",
   flexWrap: "wrap",
+  marginTop: "16px",
 };
 
 const heatmapLegendTextStyle = {
-  fontSize: "12px",
-  color: "#94a3b8",
+  color: "var(--text-secondary)",
+  fontSize: "13px",
+  fontWeight: 700,
 };
 
 const legendDotStyle = {
-  width: "12px",
-  height: "12px",
+  width: "14px",
+  height: "14px",
   borderRadius: "4px",
-  border: "1px solid rgba(255,255,255,0.06)",
+  display: "inline-block",
+  border: "1px solid var(--border-soft)",
 };
 
 const toastStyle = {
@@ -2963,18 +3089,17 @@ const emptyStateIconStyle = {
 
 const emptyStateTitleStyle = {
   margin: 0,
-  color: "#f8fafc",
+  color: "var(--text-primary)",
   fontSize: "22px",
   fontWeight: 800,
-  letterSpacing: "-0.4px",
 };
 
 const emptyStateTextStyle = {
   margin: 0,
-  color: "#cbd5e1",
+  color: "var(--text-secondary)",
   fontSize: "15px",
   lineHeight: 1.7,
-  maxWidth: "560px",
+  maxWidth: "520px",
 };
 
 const footerStyle = {
@@ -2999,12 +3124,12 @@ const celebrationBannerStyle = {
   letterSpacing: "0.1px",
 };
 const reminderSectionStyle = {
+  padding: "16px",
+  borderRadius: "18px",
+  background: "var(--surface-soft)",
+  border: "1px solid var(--border-soft)",
   display: "grid",
-  gap: "10px",
-  padding: "12px 14px",
-  borderRadius: "14px",
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.06)",
+  gap: "14px",
 };
 
 const reminderToggleLabelStyle = {
@@ -3015,9 +3140,9 @@ const reminderToggleLabelStyle = {
 };
 
 const reminderToggleTextStyle = {
-  color: "#f8fafc",
-  fontSize: "14px",
-  fontWeight: 600,
+  color: "var(--text-secondary)",
+  fontSize: "15px",
+  fontWeight: 700,
 };
 
 const checkboxStyle = {
